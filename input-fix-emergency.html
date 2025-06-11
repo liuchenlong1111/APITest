@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>输入框显示修复测试</title>
+    <style>
+        body {
+            background: linear-gradient(135deg, #0a0a1a 0%, #1a1a2e 50%, #16213e 100%);
+            color: white;
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            margin: 0;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 16px;
+            padding: 30px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #00d4ff;
+            margin-bottom: 30px;
+            text-shadow: 0 0 10px #00d4ff;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #ffffff;
+            font-weight: bold;
+        }
+
+        input, textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1) !important;
+            color: #ffffff !important;
+            font-size: 16px;
+            box-sizing: border-box;
+            -webkit-text-fill-color: #ffffff !important;
+        }
+
+        input::placeholder, textarea::placeholder {
+            color: rgba(255, 255, 255, 0.6) !important;
+            -webkit-text-fill-color: rgba(255, 255, 255, 0.6) !important;
+        }
+
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: #00d4ff;
+            box-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
+        }
+
+        textarea {
+            height: 100px;
+            resize: vertical;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 212, 255, 0.3);
+        }
+
+        .test-section {
+            margin: 30px 0;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            border: 1px solid rgba(0, 212, 255, 0.3);
+        }
+
+        .test-title {
+            color: #00d4ff;
+            font-size: 18px;
+            margin-bottom: 15px;
+        }
+
+        .result {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 6px;
+            background: rgba(0, 255, 159, 0.1);
+            border: 1px solid rgba(0, 255, 159, 0.3);
+            color: #00ff9f;
+            font-family: monospace;
+        }
+
+        /* 针对不同浏览器的特殊修复 */
+        input:-webkit-autofill,
+        input:-webkit-autofill:hover,
+        input:-webkit-autofill:focus,
+        input:-webkit-autofill:active {
+            -webkit-text-fill-color: #ffffff !important;
+            -webkit-box-shadow: 0 0 0 30px rgba(26, 26, 46, 0.8) inset !important;
+            transition: background-color 5000s ease-in-out 0s !important;
+        }
+
+        /* 确保在各种情况下文字都可见 */
+        input[type="text"], input[type="password"], input[type="email"] {
+            color: #ffffff !important;
+            -webkit-text-fill-color: #ffffff !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🛠️ 输入框显示修复测试</h1>
+        
+        <div class="test-section">
+            <div class="test-title">基础输入测试</div>
+            <div class="form-group">
+                <label for="testInput1">项目名称 (文字应该是白色可见的):</label>
+                <input type="text" id="testInput1" name="name" placeholder="请输入项目名称" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="testTextarea1">项目描述 (文字应该是白色可见的):</label>
+                <textarea id="testTextarea1" name="description" placeholder="请输入项目描述（可选）"></textarea>
+            </div>
+            
+            <button onclick="testInput()">测试输入内容</button>
+            
+            <div id="result1" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <div class="test-title">模拟项目创建表单</div>
+            <form id="projectForm" onsubmit="createProject(event)">
+                <div class="form-group">
+                    <label for="projectName">项目名称:</label>
+                    <input type="text" id="projectName" name="name" placeholder="请输入项目名称" required maxlength="100">
+                </div>
+                
+                <div class="form-group">
+                    <label for="projectDescription">项目描述:</label>
+                    <textarea id="projectDescription" name="description" placeholder="请输入项目描述（可选）" maxlength="500"></textarea>
+                </div>
+                
+                <button type="submit">创建项目</button>
+            </form>
+            
+            <div id="result2" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <div class="test-title">测试说明</div>
+            <p>如果输入框中的文字不可见，说明样式修复没有生效。</p>
+            <p>正常情况下，输入的文字应该显示为白色，占位符应该显示为半透明白色。</p>
+            <p>如果文字可见，说明样式修复成功，可以应用到主应用中。</p>
+        </div>
+    </div>
+
+    <script>
+        function testInput() {
+            const input1 = document.getElementById('testInput1').value;
+            const textarea1 = document.getElementById('testTextarea1').value;
+            const result1 = document.getElementById('result1');
+            
+            result1.style.display = 'block';
+            result1.innerHTML = `
+                <strong>输入内容检测:</strong><br>
+                项目名称: "${input1}"<br>
+                项目描述: "${textarea1}"<br>
+                <em>如果你能看到上面的内容，说明输入框工作正常！</em>
+            `;
+        }
+
+        function createProject(event) {
+            event.preventDefault();
+            
+            const formData = new FormData(event.target);
+            const projectData = {
+                name: formData.get('name'),
+                description: formData.get('description') || ''
+            };
+            
+            const result2 = document.getElementById('result2');
+            result2.style.display = 'block';
+            result2.innerHTML = `
+                <strong>项目创建模拟:</strong><br>
+                项目名称: "${projectData.name}"<br>
+                项目描述: "${projectData.description}"<br>
+                <em>模拟创建成功！在真实应用中，这些数据将发送到后端。</em>
+            `;
+            
+            // 模拟API调用
+            console.log('模拟创建项目:', projectData);
+        }
+
+        // 页面加载时的测试
+        window.addEventListener('load', function() {
+            console.log('输入框修复测试页面已加载');
+            
+            // 自动聚焦到第一个输入框
+            document.getElementById('testInput1').focus();
+            
+            // 添加一些测试文字
+            setTimeout(() => {
+                document.getElementById('testInput1').value = '测试项目名称';
+                document.getElementById('testTextarea1').value = '这是一个测试项目的描述';
+            }, 1000);
+        });
+    </script>
+</body>
+</html> 

@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API测试页面</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .section h2 {
+            margin-top: 0;
+            color: #333;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, textarea, select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .response {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 15px;
+            margin-top: 15px;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+        .error {
+            color: #dc3545;
+        }
+        .success {
+            color: #28a745;
+        }
+    </style>
+</head>
+<body>
+    <h1>API测试平台 - 接口管理功能测试</h1>
+
+    <!-- 分类管理 -->
+    <div class="section">
+        <h2>分类管理</h2>
+        
+        <div class="form-group">
+            <label>分类名称:</label>
+            <input type="text" id="categoryName" placeholder="输入分类名称">
+        </div>
+        
+        <div class="form-group">
+            <label>分类描述:</label>
+            <textarea id="categoryDescription" placeholder="输入分类描述"></textarea>
+        </div>
+        
+        <div class="form-group">
+            <label>分类颜色:</label>
+            <input type="color" id="categoryColor" value="#00d4ff">
+        </div>
+        
+        <button onclick="createCategory()">创建分类</button>
+        <button onclick="getCategories()">获取分类列表</button>
+        
+        <div id="categoryResponse" class="response"></div>
+    </div>
+
+    <!-- 接口管理 -->
+    <div class="section">
+        <h2>接口管理</h2>
+        
+        <div class="form-group">
+            <label>接口名称:</label>
+            <input type="text" id="apiName" placeholder="输入接口名称">
+        </div>
+        
+        <div class="form-group">
+            <label>请求方法:</label>
+            <select id="apiMethod">
+                <option value="GET">GET</option>
+                <option value="POST">POST</option>
+                <option value="PUT">PUT</option>
+                <option value="DELETE">DELETE</option>
+                <option value="PATCH">PATCH</option>
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label>接口地址:</label>
+            <input type="text" id="apiUrl" placeholder="输入接口地址">
+        </div>
+        
+        <div class="form-group">
+            <label>接口描述:</label>
+            <textarea id="apiDescription" placeholder="输入接口描述"></textarea>
+        </div>
+        
+        <div class="form-group">
+            <label>分类ID:</label>
+            <input type="number" id="apiCategoryId" placeholder="输入分类ID（可选）">
+        </div>
+        
+        <button onclick="createAPI()">创建接口</button>
+        <button onclick="getAPIs()">获取接口列表</button>
+        
+        <div id="apiResponse" class="response"></div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:8000';
+
+        async function makeRequest(url, options = {}) {
+            try {
+                const response = await fetch(API_BASE_URL + url, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...options.headers
+                    },
+                    ...options
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.detail || '请求失败');
+                }
+                
+                return data;
+            } catch (error) {
+                throw error;
+            }
+        }
+
+        function displayResponse(elementId, data, isError = false) {
+            const element = document.getElementById(elementId);
+            element.textContent = JSON.stringify(data, null, 2);
+            element.className = `response ${isError ? 'error' : 'success'}`;
+        }
+
+        // 分类管理函数
+        async function createCategory() {
+            const name = document.getElementById('categoryName').value;
+            const description = document.getElementById('categoryDescription').value;
+            const color = document.getElementById('categoryColor').value;
+            
+            if (!name) {
+                alert('请输入分类名称');
+                return;
+            }
+            
+            try {
+                const data = await makeRequest('/api/v1/apis/categories/', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        name,
+                        description,
+                        color,
+                        module_id: 1
+                    })
+                });
+                
+                displayResponse('categoryResponse', data);
+                
+                // 清空表单
+                document.getElementById('categoryName').value = '';
+                document.getElementById('categoryDescription').value = '';
+                document.getElementById('categoryColor').value = '#00d4ff';
+            } catch (error) {
+                displayResponse('categoryResponse', { error: error.message }, true);
+            }
+        }
+
+        async function getCategories() {
+            try {
+                const data = await makeRequest('/api/v1/apis/categories/?module_id=1');
+                displayResponse('categoryResponse', data);
+            } catch (error) {
+                displayResponse('categoryResponse', { error: error.message }, true);
+            }
+        }
+
+        // 接口管理函数
+        async function createAPI() {
+            const name = document.getElementById('apiName').value;
+            const method = document.getElementById('apiMethod').value;
+            const url = document.getElementById('apiUrl').value;
+            const description = document.getElementById('apiDescription').value;
+            const categoryId = document.getElementById('apiCategoryId').value;
+            
+            if (!name || !method || !url) {
+                alert('请填写必填字段');
+                return;
+            }
+            
+            try {
+                const requestBody = {
+                    name,
+                    method,
+                    url,
+                    description
+                };
+                
+                if (categoryId) {
+                    requestBody.category_id = parseInt(categoryId);
+                }
+                
+                const data = await makeRequest('/api/v1/apis/', {
+                    method: 'POST',
+                    body: JSON.stringify(requestBody)
+                });
+                
+                displayResponse('apiResponse', data);
+                
+                // 清空表单
+                document.getElementById('apiName').value = '';
+                document.getElementById('apiMethod').value = 'GET';
+                document.getElementById('apiUrl').value = '';
+                document.getElementById('apiDescription').value = '';
+                document.getElementById('apiCategoryId').value = '';
+            } catch (error) {
+                displayResponse('apiResponse', { error: error.message }, true);
+            }
+        }
+
+        async function getAPIs() {
+            try {
+                const data = await makeRequest('/api/v1/apis/');
+                displayResponse('apiResponse', data);
+            } catch (error) {
+                displayResponse('apiResponse', { error: error.message }, true);
+            }
+        }
+
+        // 页面加载时获取数据
+        window.onload = function() {
+            getCategories();
+            getAPIs();
+        };
+    </script>
+</body>
+</html> 

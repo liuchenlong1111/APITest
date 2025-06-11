@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API创建调试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #1a1a1a;
+            color: #fff;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #333;
+            border-radius: 8px;
+            background: #2a2a2a;
+        }
+        .section h2 {
+            color: #00d4ff;
+            margin-top: 0;
+        }
+        .form-row {
+            margin-bottom: 15px;
+        }
+        .form-label {
+            display: block;
+            margin-bottom: 5px;
+            color: #ccc;
+            font-weight: bold;
+        }
+        input, select, textarea, button {
+            background: #333;
+            color: #fff;
+            border: 1px solid #555;
+            padding: 8px 12px;
+            border-radius: 4px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        button {
+            background: #00d4ff;
+            color: #000;
+            cursor: pointer;
+            width: auto;
+            margin: 5px;
+        }
+        .result {
+            background: #333;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 10px 0;
+            white-space: pre-wrap;
+            font-family: monospace;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .success { border-left: 4px solid #67c23a; }
+        .error { border-left: 4px solid #f56c6c; }
+        .info { border-left: 4px solid #409eff; }
+        .button-group {
+            display: flex;
+            gap: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🐛 API创建调试</h1>
+        
+        <div class="section">
+            <h2>1. 基础信息</h2>
+            <div class="form-row">
+                <label class="form-label">接口名称 *</label>
+                <input type="text" id="apiName" value="第一个素材库" />
+            </div>
+            <div class="form-row">
+                <label class="form-label">请求方法 *</label>
+                <select id="apiMethod">
+                    <option value="GET">GET</option>
+                    <option value="POST">POST</option>
+                    <option value="PUT">PUT</option>
+                    <option value="DELETE">DELETE</option>
+                    <option value="PATCH">PATCH</option>
+                </select>
+            </div>
+            <div class="form-row">
+                <label class="form-label">接口地址 *</label>
+                <input type="text" id="apiUrl" value="/exam/admin/v1/index" />
+            </div>
+            <div class="form-row">
+                <label class="form-label">接口描述</label>
+                <textarea id="apiDescription" rows="3">12333</textarea>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>2. 分类选择</h2>
+            <div class="form-row">
+                <label class="form-label">所属分类</label>
+                <select id="categorySelect">
+                    <option value="">选择分类...</option>
+                </select>
+                <button onclick="loadCategories()" style="width: auto; margin-top: 10px;">加载分类列表</button>
+            </div>
+            <div id="categoryResult" class="result"></div>
+        </div>
+
+        <div class="section">
+            <h2>3. JSON字段</h2>
+            <div class="form-row">
+                <label class="form-label">请求头 (JSON格式)</label>
+                <textarea id="apiHeaders" rows="4">123233</textarea>
+            </div>
+            <div class="form-row">
+                <label class="form-label">请求参数 (JSON格式)</label>
+                <textarea id="apiParams" rows="4">{}</textarea>
+            </div>
+            <div class="form-row">
+                <label class="form-label">请求体 (JSON格式)</label>
+                <textarea id="apiBody" rows="4">333444</textarea>
+            </div>
+            
+            <div class="button-group">
+                <button onclick="validateJson()">验证JSON格式</button>
+                <button onclick="parseJsonFields()">解析JSON字段</button>
+            </div>
+            <div id="jsonResult" class="result"></div>
+        </div>
+
+        <div class="section">
+            <h2>4. API创建</h2>
+            <div class="button-group">
+                <button onclick="buildApiData()">构建API数据</button>
+                <button onclick="createAPI()">创建API</button>
+                <button onclick="resetForm()">重置表单</button>
+            </div>
+            <div id="createResult" class="result"></div>
+        </div>
+    </div>
+
+    <script>
+        let categories = [];
+
+        // 加载分类列表
+        async function loadCategories() {
+            try {
+                const response = await fetch('/api/v1/apis/categories/');
+                categories = await response.json();
+                
+                const select = document.getElementById('categorySelect');
+                select.innerHTML = '<option value="">选择分类...</option>';
+                categories.forEach(category => {
+                    const option = document.createElement('option');
+                    option.value = category.id;
+                    option.textContent = `${category.name} (模块ID: ${category.module_id})`;
+                    select.appendChild(option);
+                });
+                
+                setResult('categoryResult', `加载了 ${categories.length} 个分类`, 'success');
+            } catch (error) {
+                setResult('categoryResult', '加载分类失败: ' + error.message, 'error');
+            }
+        }
+
+        // 验证JSON格式
+        function validateJson() {
+            const headers = document.getElementById('apiHeaders').value;
+            const params = document.getElementById('apiParams').value;
+            const body = document.getElementById('apiBody').value;
+            
+            let result = 'JSON格式验证:\n\n';
+            
+            // 验证请求头
+            try {
+                if (headers.trim()) {
+                    JSON.parse(headers);
+                    result += '✓ 请求头: 有效JSON\n';
+                } else {
+                    result += '- 请求头: 空值\n';
+                }
+            } catch (e) {
+                result += `✗ 请求头: 无效JSON - ${e.message}\n`;
+            }
+            
+            // 验证请求参数
+            try {
+                if (params.trim()) {
+                    JSON.parse(params);
+                    result += '✓ 请求参数: 有效JSON\n';
+                } else {
+                    result += '- 请求参数: 空值\n';
+                }
+            } catch (e) {
+                result += `✗ 请求参数: 无效JSON - ${e.message}\n`;
+            }
+            
+            // 验证请求体
+            try {
+                if (body.trim()) {
+                    JSON.parse(body);
+                    result += '✓ 请求体: 有效JSON\n';
+                } else {
+                    result += '- 请求体: 空值\n';
+                }
+            } catch (e) {
+                result += `✗ 请求体: 无效JSON - ${e.message}\n`;
+            }
+            
+            setResult('jsonResult', result, 'info');
+        }
+
+        // 解析JSON字段
+        function parseJsonFields() {
+            const headers = document.getElementById('apiHeaders').value;
+            const params = document.getElementById('apiParams').value;
+            const body = document.getElementById('apiBody').value;
+            
+            const parseJsonText = (text) => {
+                if (!text.trim()) return undefined;
+                try {
+                    return JSON.parse(text);
+                } catch (error) {
+                    console.warn('JSON解析失败:', text, error);
+                    return text; // 返回原文本
+                }
+            };
+            
+            const parsedHeaders = parseJsonText(headers);
+            const parsedParams = parseJsonText(params);
+            const parsedBody = parseJsonText(body);
+            
+            let result = '解析结果:\n\n';
+            result += `请求头类型: ${typeof parsedHeaders}\n`;
+            result += `请求头值: ${JSON.stringify(parsedHeaders, null, 2)}\n\n`;
+            result += `请求参数类型: ${typeof parsedParams}\n`;
+            result += `请求参数值: ${JSON.stringify(parsedParams, null, 2)}\n\n`;
+            result += `请求体类型: ${typeof parsedBody}\n`;
+            result += `请求体值: ${JSON.stringify(parsedBody, null, 2)}\n`;
+            
+            setResult('jsonResult', result, 'info');
+        }
+
+        // 构建API数据
+        function buildApiData() {
+            const parseJsonText = (text) => {
+                if (!text.trim()) return undefined;
+                try {
+                    return JSON.parse(text);
+                } catch (error) {
+                    return text;
+                }
+            };
+            
+            const data = {
+                name: document.getElementById('apiName').value,
+                method: document.getElementById('apiMethod').value,
+                url: document.getElementById('apiUrl').value,
+                description: document.getElementById('apiDescription').value,
+                category_id: document.getElementById('categorySelect').value ? 
+                    parseInt(document.getElementById('categorySelect').value) : undefined,
+                headers: parseJsonText(document.getElementById('apiHeaders').value),
+                params: parseJsonText(document.getElementById('apiParams').value),
+                body: parseJsonText(document.getElementById('apiBody').value)
+            };
+            
+            let result = '构建的API数据:\n\n';
+            result += JSON.stringify(data, null, 2);
+            
+            setResult('createResult', result, 'info');
+        }
+
+        // 创建API
+        async function createAPI() {
+            try {
+                const parseJsonText = (text) => {
+                    if (!text.trim()) return undefined;
+                    try {
+                        return JSON.parse(text);
+                    } catch (error) {
+                        return text;
+                    }
+                };
+                
+                const data = {
+                    name: document.getElementById('apiName').value,
+                    method: document.getElementById('apiMethod').value,
+                    url: document.getElementById('apiUrl').value,
+                    description: document.getElementById('apiDescription').value,
+                    category_id: document.getElementById('categorySelect').value ? 
+                        parseInt(document.getElementById('categorySelect').value) : undefined,
+                    headers: parseJsonText(document.getElementById('apiHeaders').value),
+                    params: parseJsonText(document.getElementById('apiParams').value),
+                    body: parseJsonText(document.getElementById('apiBody').value)
+                };
+                
+                const response = await fetch('/api/v1/apis/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.text();
+                
+                if (response.ok) {
+                    const apiData = JSON.parse(result);
+                    setResult('createResult', `✅ API创建成功!\n\nID: ${apiData.id}\n名称: ${apiData.name}\n\n完整返回数据:\n${JSON.stringify(apiData, null, 2)}`, 'success');
+                } else {
+                    setResult('createResult', `❌ API创建失败!\n\n状态码: ${response.status}\n错误信息: ${result}`, 'error');
+                }
+            } catch (error) {
+                setResult('createResult', `❌ 请求失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 重置表单
+        function resetForm() {
+            document.getElementById('apiName').value = '';
+            document.getElementById('apiMethod').value = 'GET';
+            document.getElementById('apiUrl').value = '';
+            document.getElementById('apiDescription').value = '';
+            document.getElementById('categorySelect').value = '';
+            document.getElementById('apiHeaders').value = '';
+            document.getElementById('apiParams').value = '';
+            document.getElementById('apiBody').value = '';
+            
+            setResult('createResult', '表单已重置');
+            setResult('jsonResult', '');
+        }
+
+        // 工具方法
+        function setResult(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.className = `result ${type}`;
+        }
+
+        // 页面加载时自动加载分类
+        window.addEventListener('load', loadCategories);
+    </script>
+</body>
+</html> 

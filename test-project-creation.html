@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>项目创建错误处理测试</title>
+    <style>
+        body {
+            background: linear-gradient(135deg, #0a0a1a 0%, #1a1a2e 50%, #16213e 100%);
+            color: white;
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            margin: 0;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 16px;
+            padding: 30px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #00d4ff;
+            margin-bottom: 30px;
+            text-shadow: 0 0 10px #00d4ff;
+        }
+
+        .test-section {
+            margin: 30px 0;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            border: 1px solid rgba(0, 212, 255, 0.3);
+        }
+
+        .test-title {
+            color: #00d4ff;
+            font-size: 18px;
+            margin-bottom: 15px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #ffffff;
+            font-weight: bold;
+        }
+
+        input, textarea, select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1) !important;
+            color: #ffffff !important;
+            font-size: 16px;
+            box-sizing: border-box;
+            -webkit-text-fill-color: #ffffff !important;
+        }
+
+        input::placeholder, textarea::placeholder {
+            color: rgba(255, 255, 255, 0.6) !important;
+            -webkit-text-fill-color: rgba(255, 255, 255, 0.6) !important;
+        }
+
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: #00d4ff;
+            box-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 212, 255, 0.3);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .result {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            border: 1px solid;
+            display: none;
+        }
+
+        .result.success {
+            background: rgba(0, 255, 159, 0.1);
+            border-color: rgba(0, 255, 159, 0.3);
+            color: #00ff9f;
+        }
+
+        .result.error {
+            background: rgba(255, 107, 107, 0.1);
+            border-color: rgba(255, 107, 107, 0.3);
+            color: #ff6b6b;
+        }
+
+        .existing-projects {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .project-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 6px;
+            border-left: 3px solid #00d4ff;
+        }
+
+        .token-input {
+            font-family: monospace;
+            font-size: 12px;
+        }
+
+        .test-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .loading {
+            opacity: 0.7;
+            pointer-events: none;
+        }
+
+        .loading::after {
+            content: " 🔄";
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 项目创建错误处理测试</h1>
+        
+        <div class="test-section">
+            <div class="test-title">认证设置</div>
+            <div class="form-group">
+                <label for="token">Bearer Token:</label>
+                <input type="text" id="token" class="token-input" placeholder="请输入您的Bearer Token" 
+                       value="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbjEyMyIsImV4cCI6MTc0OTUxNzc4NH0.6gdYbdk42XxpbuLygsAv82dcM8siNToixhy2gq2uJIY">
+            </div>
+        </div>
+
+        <div class="test-section">
+            <div class="test-title">现有项目列表</div>
+            <div id="existingProjects" class="existing-projects">
+                <p>正在加载现有项目...</p>
+            </div>
+            <button onclick="loadExistingProjects()">刷新项目列表</button>
+        </div>
+
+        <div class="test-section">
+            <div class="test-title">项目创建测试</div>
+            <form id="projectForm">
+                <div class="form-group">
+                    <label for="projectName">项目名称:</label>
+                    <input type="text" id="projectName" name="name" placeholder="请输入项目名称" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="projectDescription">项目描述:</label>
+                    <textarea id="projectDescription" name="description" placeholder="请输入项目描述（可选）" rows="3"></textarea>
+                </div>
+                
+                <div class="test-buttons">
+                    <button type="button" onclick="testValidProject()">测试：创建新项目</button>
+                    <button type="button" onclick="testDuplicateName()">测试：重复项目名称</button>
+                    <button type="button" onclick="testEmptyName()">测试：空项目名称</button>
+                    <button type="button" onclick="testLongName()">测试：超长项目名称</button>
+                    <button type="button" onclick="testInvalidToken()">测试：无效Token</button>
+                </div>
+            </form>
+            
+            <div id="result" class="result"></div>
+        </div>
+
+        <div class="test-section">
+            <div class="test-title">错误信息监测</div>
+            <p>此部分会实时显示API调用的详细信息，包括请求和响应。</p>
+            <div id="apiLog" style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; font-family: monospace; font-size: 12px; white-space: pre-wrap; max-height: 300px; overflow-y: auto;">
+                等待API调用...
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const apiLog = document.getElementById('apiLog');
+        const resultDiv = document.getElementById('result');
+
+        function log(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            apiLog.textContent += `[${timestamp}] ${message}\n`;
+            apiLog.scrollTop = apiLog.scrollHeight;
+        }
+
+        function showResult(message, isError = false) {
+            resultDiv.textContent = message;
+            resultDiv.className = `result ${isError ? 'error' : 'success'}`;
+            resultDiv.style.display = 'block';
+        }
+
+        function getToken() {
+            return document.getElementById('token').value.trim();
+        }
+
+        async function makeApiCall(url, options = {}) {
+            const token = getToken();
+            if (!token) {
+                throw new Error('请先设置Bearer Token');
+            }
+
+            const config = {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                    ...options.headers
+                },
+                ...options
+            };
+
+            log(`请求: ${options.method || 'GET'} ${url}`);
+            if (options.body) {
+                log(`请求体: ${options.body}`);
+            }
+
+            const response = await fetch(url, config);
+            const responseText = await response.text();
+            
+            log(`响应状态: ${response.status} ${response.statusText}`);
+            log(`响应体: ${responseText}`);
+
+            if (!response.ok) {
+                let errorMessage = '请求失败';
+                try {
+                    const errorData = JSON.parse(responseText);
+                    errorMessage = errorData.detail || errorData.message || errorMessage;
+                } catch (e) {
+                    errorMessage = responseText || errorMessage;
+                }
+                throw new Error(errorMessage);
+            }
+
+            return JSON.parse(responseText);
+        }
+
+        async function loadExistingProjects() {
+            try {
+                log('正在加载现有项目列表...');
+                const projects = await makeApiCall('http://localhost/api/v1/projects/');
+                
+                const container = document.getElementById('existingProjects');
+                if (projects && projects.length > 0) {
+                    container.innerHTML = projects.map(project => `
+                        <div class="project-item">
+                            <strong>ID: ${project.id}</strong> - ${project.name}
+                            <br><small>描述: ${project.description || '无'}</small>
+                            <br><small>创建时间: ${new Date(project.created_at).toLocaleString()}</small>
+                        </div>
+                    `).join('');
+                } else {
+                    container.innerHTML = '<p>暂无项目</p>';
+                }
+            } catch (error) {
+                log(`加载项目列表失败: ${error.message}`);
+                document.getElementById('existingProjects').innerHTML = `<p style="color: #ff6b6b;">加载失败: ${error.message}</p>`;
+            }
+        }
+
+        async function createProject(projectData) {
+            return await makeApiCall('http://localhost/api/v1/projects/', {
+                method: 'POST',
+                body: JSON.stringify(projectData)
+            });
+        }
+
+        function setLoading(button, loading) {
+            if (loading) {
+                button.disabled = true;
+                button.classList.add('loading');
+            } else {
+                button.disabled = false;
+                button.classList.remove('loading');
+            }
+        }
+
+        async function testValidProject() {
+            const button = event.target;
+            setLoading(button, true);
+            
+            try {
+                const uniqueName = `测试项目_${Date.now()}`;
+                const projectData = {
+                    name: uniqueName,
+                    description: '这是一个测试项目，用于验证创建功能'
+                };
+                
+                log(`测试：创建新项目 "${uniqueName}"`);
+                const result = await createProject(projectData);
+                
+                showResult(`✅ 项目创建成功！项目ID: ${result.id}`, false);
+                setTimeout(loadExistingProjects, 1000);
+            } catch (error) {
+                showResult(`❌ 项目创建失败: ${error.message}`, true);
+            } finally {
+                setLoading(button, false);
+            }
+        }
+
+        async function testDuplicateName() {
+            const button = event.target;
+            setLoading(button, true);
+            
+            try {
+                const projectData = {
+                    name: '考试项目', // 已知存在的项目名
+                    description: '测试重复名称的项目创建'
+                };
+                
+                log('测试：使用已存在的项目名称 "考试项目"');
+                const result = await createProject(projectData);
+                
+                showResult(`⚠️ 意外成功：项目创建了，但应该失败（重复名称）`, true);
+            } catch (error) {
+                showResult(`✅ 预期错误：${error.message}`, false);
+            } finally {
+                setLoading(button, false);
+            }
+        }
+
+        async function testEmptyName() {
+            const button = event.target;
+            setLoading(button, true);
+            
+            try {
+                const projectData = {
+                    name: '',
+                    description: '测试空名称项目'
+                };
+                
+                log('测试：使用空的项目名称');
+                const result = await createProject(projectData);
+                
+                showResult(`⚠️ 意外成功：项目创建了，但应该失败（空名称）`, true);
+            } catch (error) {
+                showResult(`✅ 预期错误：${error.message}`, false);
+            } finally {
+                setLoading(button, false);
+            }
+        }
+
+        async function testLongName() {
+            const button = event.target;
+            setLoading(button, true);
+            
+            try {
+                const longName = 'A'.repeat(200); // 超过100字符限制
+                const projectData = {
+                    name: longName,
+                    description: '测试超长名称项目'
+                };
+                
+                log(`测试：使用超长项目名称（${longName.length}字符）`);
+                const result = await createProject(projectData);
+                
+                showResult(`⚠️ 意外成功：项目创建了，但应该失败（名称过长）`, true);
+            } catch (error) {
+                showResult(`✅ 预期错误：${error.message}`, false);
+            } finally {
+                setLoading(button, false);
+            }
+        }
+
+        async function testInvalidToken() {
+            const button = event.target;
+            setLoading(button, true);
+            
+            const originalToken = getToken();
+            document.getElementById('token').value = 'invalid_token_test';
+            
+            try {
+                const projectData = {
+                    name: '无效Token测试项目',
+                    description: '测试无效Token的项目创建'
+                };
+                
+                log('测试：使用无效的Bearer Token');
+                const result = await createProject(projectData);
+                
+                showResult(`⚠️ 意外成功：项目创建了，但应该失败（无效Token）`, true);
+            } catch (error) {
+                showResult(`✅ 预期错误：${error.message}`, false);
+            } finally {
+                document.getElementById('token').value = originalToken;
+                setLoading(button, false);
+            }
+        }
+
+        // 页面加载时自动加载项目列表
+        window.addEventListener('load', function() {
+            log('页面加载完成，开始初始化...');
+            loadExistingProjects();
+        });
+    </script>
+</body>
+</html> 

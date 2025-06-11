@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>项目列表调试工具</title>
+    <style>
+        body {
+            background: linear-gradient(135deg, #0a0a1a 0%, #1a1a2e 50%, #16213e 100%);
+            color: white;
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            margin: 0;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 16px;
+            padding: 30px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #00d4ff;
+            margin-bottom: 30px;
+            text-shadow: 0 0 10px #00d4ff;
+        }
+
+        .debug-section {
+            margin: 30px 0;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            border: 1px solid rgba(0, 212, 255, 0.3);
+        }
+
+        .debug-title {
+            color: #00d4ff;
+            font-size: 18px;
+            margin-bottom: 15px;
+        }
+
+        .token-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1) !important;
+            color: #ffffff !important;
+            font-size: 12px;
+            font-family: monospace;
+            box-sizing: border-box;
+            margin-bottom: 20px;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 212, 255, 0.3);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .log-area {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid rgba(0, 212, 255, 0.3);
+        }
+
+        .project-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 16px;
+            margin-top: 20px;
+        }
+
+        .project-card {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .project-card:hover {
+            border-color: #00d4ff;
+            box-shadow: 0 4px 12px rgba(0, 212, 255, 0.15);
+        }
+
+        .project-name {
+            font-size: 18px;
+            font-weight: bold;
+            color: #00d4ff;
+            margin-bottom: 8px;
+        }
+
+        .project-desc {
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 12px;
+            font-size: 14px;
+        }
+
+        .project-stats {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .stat-item {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .project-time {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .stats-summary {
+            background: rgba(0, 212, 255, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(0, 212, 255, 0.3);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+        }
+
+        .stat-card {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #00d4ff;
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .error-message {
+            background: rgba(255, 107, 107, 0.1);
+            border: 1px solid rgba(255, 107, 107, 0.3);
+            color: #ff6b6b;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+
+        .success-message {
+            background: rgba(0, 255, 159, 0.1);
+            border: 1px solid rgba(0, 255, 159, 0.3);
+            color: #00ff9f;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+
+        .loading {
+            opacity: 0.7;
+            pointer-events: none;
+        }
+
+        .loading::after {
+            content: " 🔄";
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 项目列表调试工具</h1>
+        
+        <div class="debug-section">
+            <div class="debug-title">认证配置</div>
+            <input type="text" id="token" class="token-input" placeholder="请输入您的Bearer Token" 
+                   value="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbjEyMyIsImV4cCI6MTc0OTUxNzc4NH0.6gdYbdk42XxpbuLygsAv82dcM8siNToixhy2gq2uJIY">
+            <button onclick="testDirectAPI()">测试直接API调用</button>
+            <button onclick="testFrontendProxy()">测试前端代理</button>
+            <button onclick="clearLog()">清空日志</button>
+        </div>
+
+        <div class="debug-section">
+            <div class="debug-title">统计信息</div>
+            <div id="statsContainer" class="stats-summary" style="display: none;">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value" id="totalProjects">0</div>
+                        <div class="stat-label">总项目数</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="totalModules">0</div>
+                        <div class="stat-label">总模块数</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="totalAPIs">0</div>
+                        <div class="stat-label">总接口数</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="recentProjects">0</div>
+                        <div class="stat-label">近期项目</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="debug-section">
+            <div class="debug-title">调试日志</div>
+            <div id="debugLog" class="log-area">等待操作...</div>
+        </div>
+
+        <div class="debug-section">
+            <div class="debug-title">项目列表</div>
+            <div id="messageContainer"></div>
+            <div id="projectList" class="project-grid"></div>
+        </div>
+    </div>
+
+    <script>
+        const debugLog = document.getElementById('debugLog');
+        const projectList = document.getElementById('projectList');
+        const messageContainer = document.getElementById('messageContainer');
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] ${message}\n`;
+            debugLog.textContent += logEntry;
+            debugLog.scrollTop = debugLog.scrollHeight;
+            
+            if (type === 'error') {
+                console.error(message);
+            } else {
+                console.log(message);
+            }
+        }
+
+        function clearLog() {
+            debugLog.textContent = '日志已清空\n';
+        }
+
+        function showMessage(message, isError = false) {
+            const messageEl = document.createElement('div');
+            messageEl.className = isError ? 'error-message' : 'success-message';
+            messageEl.textContent = message;
+            messageContainer.innerHTML = '';
+            messageContainer.appendChild(messageEl);
+            
+            setTimeout(() => {
+                messageEl.remove();
+            }, 5000);
+        }
+
+        function getToken() {
+            return document.getElementById('token').value.trim();
+        }
+
+        function updateStats(projects) {
+            if (!projects || !Array.isArray(projects)) {
+                document.getElementById('statsContainer').style.display = 'none';
+                return;
+            }
+
+            const totalProjects = projects.length;
+            const totalModules = projects.reduce((sum, p) => sum + (p.module_count || 0), 0);
+            const totalAPIs = projects.reduce((sum, p) => sum + (p.api_count || 0), 0);
+            
+            const now = new Date();
+            const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+            const recentProjects = projects.filter(p => new Date(p.created_at) > oneDayAgo).length;
+
+            document.getElementById('totalProjects').textContent = totalProjects;
+            document.getElementById('totalModules').textContent = totalModules;
+            document.getElementById('totalAPIs').textContent = totalAPIs;
+            document.getElementById('recentProjects').textContent = recentProjects;
+            
+            document.getElementById('statsContainer').style.display = 'block';
+        }
+
+        function renderProjects(projects) {
+            projectList.innerHTML = '';
+            
+            if (!projects || !Array.isArray(projects) || projects.length === 0) {
+                projectList.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: rgba(255,255,255,0.6); padding: 40px;">暂无项目数据</div>';
+                return;
+            }
+
+            projects.forEach(project => {
+                const projectCard = document.createElement('div');
+                projectCard.className = 'project-card';
+                
+                projectCard.innerHTML = `
+                    <div class="project-name">ID: ${project.id} - ${project.name}</div>
+                    <div class="project-desc">${project.description || '暂无描述'}</div>
+                    <div class="project-stats">
+                        <div class="stat-item">📁 ${project.module_count || 0} 模块</div>
+                        <div class="stat-item">📂 ${project.category_count || 0} 分类</div>
+                        <div class="stat-item">🔗 ${project.api_count || 0} 接口</div>
+                    </div>
+                    <div class="project-time">
+                        创建: ${new Date(project.created_at).toLocaleString()}<br>
+                        更新: ${new Date(project.updated_at).toLocaleString()}
+                    </div>
+                `;
+                
+                projectList.appendChild(projectCard);
+            });
+        }
+
+        async function testDirectAPI() {
+            const button = event.target;
+            button.classList.add('loading');
+            button.disabled = true;
+            
+            try {
+                const token = getToken();
+                if (!token) {
+                    throw new Error('请先设置Bearer Token');
+                }
+
+                log('开始测试直接API调用...');
+                log(`使用Token: ${token.substring(0, 50)}...`);
+                
+                const response = await fetch('http://localhost/api/v1/projects/', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                log(`响应状态: ${response.status} ${response.statusText}`);
+                log(`响应头: ${JSON.stringify(Object.fromEntries(response.headers))}`);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                log(`响应数据类型: ${Array.isArray(data) ? 'Array' : typeof data}`);
+                log(`响应数据长度: ${Array.isArray(data) ? data.length : 'N/A'}`);
+                log(`原始响应: ${JSON.stringify(data, null, 2)}`);
+
+                if (Array.isArray(data)) {
+                    showMessage(`✅ 成功获取 ${data.length} 个项目`, false);
+                    updateStats(data);
+                    renderProjects(data);
+                } else if (data && data.data && Array.isArray(data.data)) {
+                    log('检测到嵌套数据结构，提取 data.data');
+                    showMessage(`✅ 成功获取 ${data.data.length} 个项目 (嵌套结构)`, false);
+                    updateStats(data.data);
+                    renderProjects(data.data);
+                } else {
+                    throw new Error('响应数据格式不正确，不是数组格式');
+                }
+
+            } catch (error) {
+                log(`❌ 直接API调用失败: ${error.message}`, 'error');
+                showMessage(`❌ 获取项目列表失败: ${error.message}`, true);
+                renderProjects([]);
+            } finally {
+                button.classList.remove('loading');
+                button.disabled = false;
+            }
+        }
+
+        async function testFrontendProxy() {
+            const button = event.target;
+            button.classList.add('loading');
+            button.disabled = true;
+            
+            try {
+                log('开始测试前端代理调用...');
+                log('模拟前端axios请求处理...');
+                
+                // 模拟前端的axios请求
+                const token = getToken();
+                if (!token) {
+                    throw new Error('请先设置Bearer Token');
+                }
+
+                const response = await fetch('http://localhost/api/v1/projects/', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const rawData = await response.json();
+                log(`原始API响应: ${JSON.stringify(rawData, null, 2)}`);
+
+                // 模拟axios响应拦截器的处理
+                log('模拟axios响应拦截器处理...');
+                const processedData = rawData; // axios拦截器返回data
+
+                log(`axios处理后的数据: ${JSON.stringify(processedData, null, 2)}`);
+                log(`数据类型: ${Array.isArray(processedData) ? 'Array' : typeof processedData}`);
+
+                // 模拟前端组件的处理
+                log('模拟前端组件处理 response.data || response || []...');
+                const finalData = processedData.data || processedData || [];
+                
+                log(`最终数据: ${JSON.stringify(finalData, null, 2)}`);
+                log(`最终数据类型: ${Array.isArray(finalData) ? 'Array' : typeof finalData}`);
+                log(`最终数据长度: ${Array.isArray(finalData) ? finalData.length : 'N/A'}`);
+
+                if (Array.isArray(finalData) && finalData.length > 0) {
+                    showMessage(`✅ 前端代理测试成功，获取 ${finalData.length} 个项目`, false);
+                    updateStats(finalData);
+                    renderProjects(finalData);
+                } else {
+                    showMessage(`⚠️ 前端代理测试结果异常，最终数据为空或非数组`, true);
+                    renderProjects([]);
+                }
+
+            } catch (error) {
+                log(`❌ 前端代理测试失败: ${error.message}`, 'error');
+                showMessage(`❌ 前端代理测试失败: ${error.message}`, true);
+                renderProjects([]);
+            } finally {
+                button.classList.remove('loading');
+                button.disabled = false;
+            }
+        }
+
+        // 页面加载时自动测试
+        window.addEventListener('load', function() {
+            log('调试工具加载完成');
+            log('使用说明:');
+            log('1. 确认Token是否正确');
+            log('2. 点击"测试直接API调用"检查后端API');
+            log('3. 点击"测试前端代理"模拟前端处理流程');
+            log('4. 查看日志和项目列表显示结果');
+            log('---');
+        });
+    </script>
+</body>
+</html> 

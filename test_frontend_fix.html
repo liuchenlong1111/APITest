@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>测试项目中心修复</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-item {
+            margin: 10px 0;
+            padding: 10px;
+            border-left: 4px solid #409eff;
+            background: #f0f9ff;
+        }
+        .status-success {
+            border-left-color: #67c23a;
+            background: #f0f9f0;
+        }
+        .status-error {
+            border-left-color: #f56c6c;
+            background: #fef0f0;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🔧 项目中心修复验证</h1>
+        <p>测试前端项目中心页面是否正常工作</p>
+        
+        <div id="test-results">
+            <div class="test-item">
+                <strong>测试1：API连接测试</strong>
+                <div id="api-test">正在测试...</div>
+            </div>
+            
+            <div class="test-item">
+                <strong>测试2：数据格式验证</strong>
+                <div id="format-test">正在测试...</div>
+            </div>
+            
+            <div class="test-item">
+                <strong>测试3：项目列表显示</strong>
+                <div id="list-test">正在测试...</div>
+            </div>
+        </div>
+        
+        <div style="margin-top: 20px;">
+            <button onclick="openProjectCenter()" style="background: #409eff; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer;">
+                打开项目中心
+            </button>
+        </div>
+    </div>
+
+    <script>
+        async function testAPI() {
+            try {
+                const response = await fetch('http://localhost:8000/api/v1/projects/');
+                const data = await response.json();
+                
+                // 测试1：API连接
+                const apiTest = document.getElementById('api-test');
+                if (response.ok) {
+                    apiTest.innerHTML = '✅ API连接成功';
+                    apiTest.parentElement.classList.add('status-success');
+                } else {
+                    apiTest.innerHTML = '❌ API连接失败';
+                    apiTest.parentElement.classList.add('status-error');
+                    return;
+                }
+                
+                // 测试2：数据格式验证
+                const formatTest = document.getElementById('format-test');
+                if (Array.isArray(data) && data.every(item => 
+                    item.hasOwnProperty('id') && 
+                    item.hasOwnProperty('name') && 
+                    item.hasOwnProperty('module_count') &&
+                    item.hasOwnProperty('api_count'))) {
+                    formatTest.innerHTML = '✅ 数据格式正确（扁平化格式）';
+                    formatTest.parentElement.classList.add('status-success');
+                } else {
+                    formatTest.innerHTML = '❌ 数据格式不正确';
+                    formatTest.parentElement.classList.add('status-error');
+                    return;
+                }
+                
+                // 测试3：项目列表显示
+                const listTest = document.getElementById('list-test');
+                listTest.innerHTML = `✅ 发现 ${data.length} 个项目<br/>`;
+                data.forEach(project => {
+                    listTest.innerHTML += `📁 ${project.name} (${project.module_count}模块, ${project.api_count}接口)<br/>`;
+                });
+                listTest.parentElement.classList.add('status-success');
+                
+            } catch (error) {
+                console.error('测试失败:', error);
+                document.getElementById('api-test').innerHTML = '❌ 测试异常: ' + error.message;
+                document.getElementById('api-test').parentElement.classList.add('status-error');
+            }
+        }
+        
+        function openProjectCenter() {
+            window.open('http://localhost:80/#/projects', '_blank');
+        }
+        
+        // 页面加载后自动测试
+        window.onload = testAPI;
+    </script>
+</body>
+</html> 

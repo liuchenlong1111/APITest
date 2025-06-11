@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>项目分类筛选测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #1a1a1a;
+            color: #fff;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #333;
+            border-radius: 8px;
+            background: #2a2a2a;
+        }
+        .section h2 {
+            color: #00d4ff;
+            margin-top: 0;
+        }
+        select, button {
+            background: #333;
+            color: #fff;
+            border: 1px solid #555;
+            padding: 8px 12px;
+            border-radius: 4px;
+            margin: 5px;
+        }
+        button {
+            background: #00d4ff;
+            color: #000;
+            cursor: pointer;
+        }
+        .result {
+            background: #333;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 10px 0;
+            white-space: pre-wrap;
+            font-family: monospace;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .success { border-left: 4px solid #67c23a; }
+        .error { border-left: 4px solid #f56c6c; }
+        .info { border-left: 4px solid #409eff; }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .card {
+            background: #333;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #555;
+        }
+        .card h3 {
+            color: #00d4ff;
+            margin-top: 0;
+            font-size: 16px;
+        }
+        .category-count {
+            color: #67c23a;
+            font-weight: bold;
+        }
+        .module-info {
+            font-size: 12px;
+            color: #888;
+        }
+        .comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 项目分类筛选测试</h1>
+        
+        <div class="section">
+            <h2>1. 项目选择</h2>
+            <select id="projectSelect">
+                <option value="">选择项目...</option>
+            </select>
+            <button onclick="loadProjectData()">加载项目数据</button>
+            <button onclick="loadAllCategories()">加载所有分类</button>
+            <div id="projectResult" class="result"></div>
+        </div>
+
+        <div class="section">
+            <h2>2. 分类筛选对比</h2>
+            <div class="comparison">
+                <div>
+                    <h3>项目分类 (应该只显示选中项目的分类)</h3>
+                    <div id="projectCategories" class="result"></div>
+                </div>
+                <div>
+                    <h3>所有分类 (对比参考)</h3>
+                    <div id="allCategories" class="result"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>3. 项目详细信息</h2>
+            <div id="projectDetails" class="grid"></div>
+        </div>
+    </div>
+
+    <script>
+        let projects = [];
+        let projectCategories = [];
+        let allCategories = [];
+        let modules = [];
+
+        // 初始化
+        async function init() {
+            try {
+                const response = await fetch('/api/v1/projects/');
+                projects = await response.json();
+                
+                const select = document.getElementById('projectSelect');
+                select.innerHTML = '<option value="">选择项目...</option>';
+                projects.forEach(project => {
+                    const option = document.createElement('option');
+                    option.value = project.id;
+                    option.textContent = `${project.name} (分类: ${project.category_count}, 接口: ${project.api_count})`;
+                    select.appendChild(option);
+                });
+                
+                setResult('projectResult', '项目列表加载完成');
+            } catch (error) {
+                setResult('projectResult', '加载项目列表失败: ' + error.message, 'error');
+            }
+        }
+
+        // 加载项目数据
+        async function loadProjectData() {
+            const projectId = document.getElementById('projectSelect').value;
+            if (!projectId) {
+                setResult('projectResult', '请先选择项目', 'error');
+                return;
+            }
+
+            setResult('projectResult', '正在加载项目数据...');
+
+            try {
+                // 并行加载项目的模块和分类
+                const [modulesResponse, categoriesResponse] = await Promise.all([
+                    fetch(`/api/v1/projects/${projectId}/modules`),
+                    fetch(`/api/v1/apis/categories/?project_id=${projectId}`)
+                ]);
+
+                modules = await modulesResponse.json();
+                projectCategories = await categoriesResponse.json();
+
+                setResult('projectResult', `项目数据加载完成 - 模块: ${modules.length}, 分类: ${projectCategories.length}`, 'success');
+                
+                updateProjectCategories();
+                updateProjectDetails();
+            } catch (error) {
+                setResult('projectResult', '加载项目数据失败: ' + error.message, 'error');
+            }
+        }
+
+        // 加载所有分类
+        async function loadAllCategories() {
+            try {
+                const response = await fetch('/api/v1/apis/categories/');
+                allCategories = await response.json();
+                
+                updateAllCategories();
+            } catch (error) {
+                setResult('allCategories', '加载所有分类失败: ' + error.message, 'error');
+            }
+        }
+
+        // 更新项目分类显示
+        function updateProjectCategories() {
+            if (projectCategories.length === 0) {
+                setResult('projectCategories', '该项目暂无分类', 'info');
+                return;
+            }
+
+            // 按模块分组
+            const moduleGroups = {};
+            projectCategories.forEach(category => {
+                const moduleId = category.module_id;
+                if (!moduleGroups[moduleId]) {
+                    const module = modules.find(m => m.id === moduleId);
+                    moduleGroups[moduleId] = {
+                        module: module,
+                        categories: []
+                    };
+                }
+                moduleGroups[moduleId].categories.push(category);
+            });
+
+            let result = `项目分类总数: ${projectCategories.length}\n\n`;
+            Object.values(moduleGroups).forEach(group => {
+                result += `📁 模块: ${group.module?.name || '未知模块'}\n`;
+                group.categories.forEach(cat => {
+                    result += `  - ${cat.name} [${cat.color}] (ID: ${cat.id})\n`;
+                    if (cat.description) {
+                        result += `    描述: ${cat.description}\n`;
+                    }
+                });
+                result += '\n';
+            });
+
+            setResult('projectCategories', result, 'success');
+        }
+
+        // 更新所有分类显示
+        function updateAllCategories() {
+            if (allCategories.length === 0) {
+                setResult('allCategories', '暂无分类数据', 'info');
+                return;
+            }
+
+            let result = `所有分类总数: ${allCategories.length}\n\n`;
+            allCategories.forEach(cat => {
+                result += `- ${cat.name} [${cat.color}] (ID: ${cat.id}, 模块ID: ${cat.module_id})\n`;
+                if (cat.description) {
+                    result += `  描述: ${cat.description}\n`;
+                }
+            });
+
+            setResult('allCategories', result, 'info');
+        }
+
+        // 更新项目详细信息
+        function updateProjectDetails() {
+            const projectId = document.getElementById('projectSelect').value;
+            const project = projects.find(p => p.id == projectId);
+            
+            if (!project) return;
+
+            const container = document.getElementById('projectDetails');
+            container.innerHTML = `
+                <div class="card">
+                    <h3>📊 项目统计</h3>
+                    <p><strong>项目名称:</strong> ${project.name}</p>
+                    <p><strong>模块数量:</strong> <span class="category-count">${modules.length}</span></p>
+                    <p><strong>分类数量:</strong> <span class="category-count">${projectCategories.length}</span></p>
+                    <p><strong>接口数量:</strong> <span class="category-count">${project.api_count || 0}</span></p>
+                </div>
+                <div class="card">
+                    <h3>🔧 模块列表</h3>
+                    ${modules.map(module => {
+                        const moduleCategories = projectCategories.filter(cat => cat.module_id === module.id);
+                        return `
+                            <div class="module-info">
+                                <strong>${module.name}</strong> - ${moduleCategories.length} 个分类
+                                <br><small>${module.description || '无描述'}</small>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+                <div class="card">
+                    <h3>🎯 筛选验证</h3>
+                    <p><strong>期望结果:</strong> 只显示 "${project.name}" 项目下的分类</p>
+                    <p><strong>实际结果:</strong> ${projectCategories.length} 个分类</p>
+                    <p><strong>验证状态:</strong> 
+                        <span style="color: ${projectCategories.length <= allCategories.length ? '#67c23a' : '#f56c6c'}">
+                            ${projectCategories.length <= allCategories.length ? '✅ 通过' : '❌ 失败'}
+                        </span>
+                    </p>
+                </div>
+            `;
+        }
+
+        // 工具方法
+        function setResult(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.className = `result ${type}`;
+        }
+
+        // 页面加载时初始化
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html> 

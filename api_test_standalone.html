@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API管理测试页面</title>
+    
+    <!-- Element Plus CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
+    
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: 'Helvetica Neue', Helvetica, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', '微软雅黑', Arial, sans-serif;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .search-area {
+            margin-bottom: 24px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+        
+        .category-section {
+            margin-bottom: 24px;
+        }
+        
+        .category-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        
+        .category-tag {
+            cursor: pointer;
+            margin: 4px;
+            transition: all 0.3s;
+        }
+        
+        .category-tag:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .text-gray {
+            color: #999;
+        }
+        
+        #app {
+            min-height: 100vh;
+        }
+        
+        .status-message {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div class="container">
+            <el-card>
+                <template #header>
+                    <div class="card-header">
+                        <h2>🚀 API测试平台 - 接口管理</h2>
+                        <div>
+                            <el-button type="primary" @click="showCreateCategoryDialog">
+                                新增分类
+                            </el-button>
+                            <el-button type="primary" @click="showCreateAPIDialog">
+                                新增接口
+                            </el-button>
+                        </div>
+                    </div>
+                </template>
+
+                <!-- 连接状态 -->
+                <el-alert
+                    v-if="!isConnected"
+                    title="后端服务未连接"
+                    description="请确保后端服务已启动 (python -m app.main)"
+                    type="warning"
+                    show-icon
+                    style="margin-bottom: 20px;"
+                />
+
+                <!-- 搜索区域 -->
+                <div class="search-area">
+                    <el-row :gutter="20">
+                        <el-col :span="8">
+                            <el-input
+                                v-model="searchKeyword"
+                                placeholder="搜索接口名称"
+                                clearable
+                                @keyup.enter="handleSearch"
+                            >
+                                <template #prefix>
+                                    <el-icon><search /></el-icon>
+                                </template>
+                            </el-input>
+                        </el-col>
+                        <el-col :span="6">
+                            <el-select
+                                v-model="selectedCategoryId"
+                                placeholder="选择分类"
+                                clearable
+                                @change="handleSearch"
+                            >
+                                <el-option
+                                    v-for="category in categories"
+                                    :key="category.id"
+                                    :label="category.name"
+                                    :value="category.id"
+                                >
+                                    <span :style="{ color: category.color }">● </span>
+                                    {{ category.name }}
+                                </el-option>
+                            </el-select>
+                        </el-col>
+                        <el-col :span="4">
+                            <el-button type="primary" @click="handleSearch">搜索</el-button>
+                            <el-button @click="handleReset">重置</el-button>
+                        </el-col>
+                    </el-row>
+                </div>
+
+                <!-- 分类管理区域 -->
+                <div class="category-section">
+                    <h3>分类管理 ({{ categories.length }})</h3>
+                    <div class="category-list" v-if="categories.length > 0">
+                        <el-tag
+                            v-for="category in categories"
+                            :key="category.id"
+                            :color="category.color"
+                            class="category-tag"
+                            closable
+                            @close="handleDeleteCategory(category.id)"
+                            @click="handleCategoryClick(category)"
+                        >
+                            {{ category.name }} ({{ getAPICountByCategory(category.id) }})
+                        </el-tag>
+                    </div>
+                    <div v-else class="status-message">
+                        暂无分类，点击"新增分类"创建第一个分类
+                    </div>
+                </div>
+
+                <!-- 接口列表区域 -->
+                <div class="api-section">
+                    <h3>接口列表 ({{ apis.length }})</h3>
+                    <el-table 
+                        :data="apis" 
+                        v-loading="loading"
+                        row-key="id"
+                        v-if="apis.length > 0"
+                    >
+                        <el-table-column prop="name" label="接口名称" min-width="150">
+                            <template #default="{ row }">
+                                <el-link type="primary" @click="handleViewAPI(row)">
+                                    {{ row.name }}
+                                </el-link>
+                            </template>
+                        </el-table-column>
+                        
+                        <el-table-column prop="method" label="请求方法" width="100">
+                            <template #default="{ row }">
+                                <el-tag :type="getMethodType(row.method)" size="small">
+                                    {{ row.method.toUpperCase() }}
+                                </el-tag>
+                            </template>
+                        </el-table-column>
+                        
+                        <el-table-column prop="url" label="接口地址" min-width="200" show-overflow-tooltip />
+                        
+                        <el-table-column prop="category" label="分类" width="120">
+                            <template #default="{ row }">
+                                <el-tag v-if="row.category" :color="row.category.color" size="small">
+                                    {{ row.category.name }}
+                                </el-tag>
+                                <span v-else class="text-gray">未分类</span>
+                            </template>
+                        </el-table-column>
+                        
+                        <el-table-column prop="description" label="描述" min-width="150" show-overflow-tooltip />
+                        
+                        <el-table-column prop="updated_at" label="更新时间" width="180">
+                            <template #default="{ row }">
+                                {{ formatDateTime(row.updated_at) }}
+                            </template>
+                        </el-table-column>
+                        
+                        <el-table-column label="操作" width="200" fixed="right">
+                            <template #default="{ row }">
+                                <el-button type="primary" link size="small" @click="handleEditAPI(row)">
+                                    编辑
+                                </el-button>
+                                <el-button type="success" link size="small" @click="handleTestAPI(row)">
+                                    测试
+                                </el-button>
+                                <el-button type="danger" link size="small" @click="handleDeleteAPI(row.id)">
+                                    删除
+                                </el-button>
+                            </template>
+                        </el-table-column>
+                    </el-table>
+                    
+                    <div v-else-if="!loading" class="status-message">
+                        暂无接口，点击"新增接口"创建第一个接口
+                    </div>
+                </div>
+            </el-card>
+
+            <!-- 创建分类对话框 -->
+            <el-dialog
+                v-model="categoryDialogVisible"
+                :title="categoryForm.id ? '编辑分类' : '新增分类'"
+                width="500px"
+            >
+                <el-form
+                    ref="categoryFormRef"
+                    :model="categoryForm"
+                    :rules="categoryRules"
+                    label-width="80px"
+                >
+                    <el-form-item label="分类名称" prop="name">
+                        <el-input v-model="categoryForm.name" placeholder="请输入分类名称" />
+                    </el-form-item>
+                    
+                    <el-form-item label="分类描述" prop="description">
+                        <el-input
+                            v-model="categoryForm.description"
+                            type="textarea"
+                            placeholder="请输入分类描述"
+                            :rows="3"
+                        />
+                    </el-form-item>
+                    
+                    <el-form-item label="分类颜色" prop="color">
+                        <el-color-picker v-model="categoryForm.color" />
+                    </el-form-item>
+                </el-form>
+                
+                <template #footer>
+                    <el-button @click="categoryDialogVisible = false">取消</el-button>
+                    <el-button type="primary" @click="handleSaveCategory" :loading="categoryLoading">
+                        确定
+                    </el-button>
+                </template>
+            </el-dialog>
+
+            <!-- 创建/编辑接口对话框 -->
+            <el-dialog
+                v-model="apiDialogVisible"
+                :title="apiForm.id ? '编辑接口' : '新增接口'"
+                width="800px"
+            >
+                <el-form
+                    ref="apiFormRef"
+                    :model="apiForm"
+                    :rules="apiRules"
+                    label-width="100px"
+                >
+                    <el-row :gutter="20">
+                        <el-col :span="12">
+                            <el-form-item label="接口名称" prop="name">
+                                <el-input v-model="apiForm.name" placeholder="请输入接口名称" />
+                            </el-form-item>
+                        </el-col>
+                        
+                        <el-col :span="12">
+                            <el-form-item label="请求方法" prop="method">
+                                <el-select v-model="apiForm.method" placeholder="选择请求方法">
+                                    <el-option label="GET" value="GET" />
+                                    <el-option label="POST" value="POST" />
+                                    <el-option label="PUT" value="PUT" />
+                                    <el-option label="DELETE" value="DELETE" />
+                                    <el-option label="PATCH" value="PATCH" />
+                                </el-select>
+                            </el-form-item>
+                        </el-col>
+                    </el-row>
+                    
+                    <el-form-item label="接口地址" prop="url">
+                        <el-input v-model="apiForm.url" placeholder="请输入接口地址，如：/api/v1/users" />
+                    </el-form-item>
+                    
+                    <el-row :gutter="20">
+                        <el-col :span="12">
+                            <el-form-item label="所属分类">
+                                <el-select v-model="apiForm.category_id" placeholder="选择分类" clearable>
+                                    <el-option
+                                        v-for="category in categories"
+                                        :key="category.id"
+                                        :label="category.name"
+                                        :value="category.id"
+                                    >
+                                        <span :style="{ color: category.color }">● </span>
+                                        {{ category.name }}
+                                    </el-option>
+                                </el-select>
+                            </el-form-item>
+                        </el-col>
+                    </el-row>
+                    
+                    <el-form-item label="接口描述">
+                        <el-input
+                            v-model="apiForm.description"
+                            type="textarea"
+                            placeholder="请输入接口描述"
+                            :rows="3"
+                        />
+                    </el-form-item>
+                </el-form>
+                
+                <template #footer>
+                    <el-button @click="apiDialogVisible = false">取消</el-button>
+                    <el-button type="primary" @click="handleSaveAPI" :loading="apiLoading">
+                        确定
+                    </el-button>
+                </template>
+            </el-dialog>
+        </div>
+    </div>
+
+    <!-- Vue 3 -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <!-- Element Plus -->
+    <script src="https://unpkg.com/element-plus/dist/index.full.js"></script>
+
+    <script>
+        const { createApp, ref, reactive, onMounted, computed } = Vue;
+        const { ElMessage, ElMessageBox } = ElementPlus;
+
+        const app = createApp({
+            setup() {
+                // 响应式数据
+                const loading = ref(false);
+                const categoryLoading = ref(false);
+                const apiLoading = ref(false);
+                const isConnected = ref(true);
+
+                // 搜索相关
+                const searchKeyword = ref('');
+                const selectedCategoryId = ref(undefined);
+
+                // 数据列表
+                const categories = ref([]);
+                const apis = ref([]);
+
+                // 分类对话框
+                const categoryDialogVisible = ref(false);
+                const categoryForm = reactive({
+                    id: undefined,
+                    name: '',
+                    description: '',
+                    color: '#00d4ff',
+                    module_id: 1
+                });
+
+                const categoryRules = {
+                    name: [
+                        { required: true, message: '请输入分类名称', trigger: 'blur' },
+                        { min: 1, max: 100, message: '分类名称长度在 1 到 100 个字符', trigger: 'blur' }
+                    ]
+                };
+
+                // 接口对话框
+                const apiDialogVisible = ref(false);
+                const apiForm = reactive({
+                    id: undefined,
+                    name: '',
+                    method: 'GET',
+                    url: '',
+                    description: '',
+                    category_id: undefined
+                });
+
+                const apiRules = {
+                    name: [
+                        { required: true, message: '请输入接口名称', trigger: 'blur' },
+                        { min: 1, max: 200, message: '接口名称长度在 1 到 200 个字符', trigger: 'blur' }
+                    ],
+                    method: [
+                        { required: true, message: '请选择请求方法', trigger: 'change' }
+                    ],
+                    url: [
+                        { required: true, message: '请输入接口地址', trigger: 'blur' },
+                        { min: 1, max: 500, message: '接口地址长度在 1 到 500 个字符', trigger: 'blur' }
+                    ]
+                };
+
+                // API 调用函数
+                const makeRequest = async (url, options = {}) => {
+                    try {
+                        const response = await fetch('http://localhost:8000' + url, {
+                            headers: {
+                                'Content-Type': 'application/json',
+                                ...options.headers
+                            },
+                            ...options
+                        });
+                        
+                        if (!response.ok) {
+                            const errorData = await response.json().catch(() => ({}));
+                            throw new Error(errorData.detail || `HTTP ${response.status}`);
+                        }
+                        
+                        const data = await response.json();
+                        isConnected.value = true;
+                        return data;
+                    } catch (error) {
+                        if (error.message.includes('fetch')) {
+                            isConnected.value = false;
+                            throw new Error('无法连接到后端服务，请确保服务已启动');
+                        }
+                        throw error;
+                    }
+                };
+
+                // 加载分类
+                const loadCategories = async () => {
+                    try {
+                        const data = await makeRequest('/api/v1/apis/categories/?module_id=1');
+                        categories.value = data || [];
+                    } catch (error) {
+                        console.error('加载分类失败:', error);
+                        ElMessage.error('加载分类失败: ' + error.message);
+                    }
+                };
+
+                // 加载接口
+                const loadAPIs = async () => {
+                    loading.value = true;
+                    try {
+                        let url = '/api/v1/apis/?';
+                        const params = new URLSearchParams();
+                        
+                        if (selectedCategoryId.value) {
+                            params.append('category_id', selectedCategoryId.value.toString());
+                        }
+                        if (searchKeyword.value) {
+                            params.append('keyword', searchKeyword.value);
+                        }
+                        
+                        url += params.toString();
+                        const data = await makeRequest(url);
+                        apis.value = data || [];
+                    } catch (error) {
+                        console.error('加载接口失败:', error);
+                        ElMessage.error('加载接口失败: ' + error.message);
+                    } finally {
+                        loading.value = false;
+                    }
+                };
+
+                // 计算分类下的接口数量
+                const getAPICountByCategory = (categoryId) => {
+                    return apis.value.filter(api => api.category_id === categoryId).length;
+                };
+
+                // 搜索和筛选
+                const handleSearch = () => {
+                    loadAPIs();
+                };
+
+                const handleReset = () => {
+                    searchKeyword.value = '';
+                    selectedCategoryId.value = undefined;
+                    loadAPIs();
+                };
+
+                // 分类管理
+                const showCreateCategoryDialog = () => {
+                    resetCategoryForm();
+                    categoryDialogVisible.value = true;
+                };
+
+                const resetCategoryForm = () => {
+                    categoryForm.id = undefined;
+                    categoryForm.name = '';
+                    categoryForm.description = '';
+                    categoryForm.color = '#00d4ff';
+                };
+
+                const handleSaveCategory = async () => {
+                    categoryLoading.value = true;
+                    try {
+                        const data = {
+                            name: categoryForm.name,
+                            description: categoryForm.description,
+                            color: categoryForm.color,
+                            module_id: categoryForm.module_id
+                        };
+
+                        if (categoryForm.id) {
+                            await makeRequest(`/api/v1/apis/categories/${categoryForm.id}`, {
+                                method: 'PUT',
+                                body: JSON.stringify(data)
+                            });
+                            ElMessage.success('分类更新成功');
+                        } else {
+                            await makeRequest('/api/v1/apis/categories/', {
+                                method: 'POST',
+                                body: JSON.stringify(data)
+                            });
+                            ElMessage.success('分类创建成功');
+                        }
+
+                        categoryDialogVisible.value = false;
+                        await loadCategories();
+                        await loadAPIs(); // 重新加载接口以更新关联信息
+                    } catch (error) {
+                        ElMessage.error('保存分类失败: ' + error.message);
+                    } finally {
+                        categoryLoading.value = false;
+                    }
+                };
+
+                const handleDeleteCategory = async (id) => {
+                    try {
+                        await ElMessageBox.confirm('确认删除此分类吗？删除后分类下的接口将变为未分类状态。', '警告', {
+                            confirmButtonText: '确认',
+                            cancelButtonText: '取消',
+                            type: 'warning'
+                        });
+
+                        await makeRequest(`/api/v1/apis/categories/${id}`, {
+                            method: 'DELETE'
+                        });
+                        ElMessage.success('分类删除成功');
+                        await loadCategories();
+                        await loadAPIs();
+                    } catch (error) {
+                        if (error !== 'cancel') {
+                            ElMessage.error('删除分类失败: ' + error.message);
+                        }
+                    }
+                };
+
+                const handleCategoryClick = (category) => {
+                    selectedCategoryId.value = category.id;
+                    handleSearch();
+                };
+
+                // 接口管理
+                const showCreateAPIDialog = () => {
+                    resetAPIForm();
+                    apiDialogVisible.value = true;
+                };
+
+                const resetAPIForm = () => {
+                    apiForm.id = undefined;
+                    apiForm.name = '';
+                    apiForm.method = 'GET';
+                    apiForm.url = '';
+                    apiForm.description = '';
+                    apiForm.category_id = undefined;
+                };
+
+                const handleSaveAPI = async () => {
+                    apiLoading.value = true;
+                    try {
+                        const data = {
+                            name: apiForm.name,
+                            method: apiForm.method,
+                            url: apiForm.url,
+                            description: apiForm.description,
+                            category_id: apiForm.category_id || null
+                        };
+
+                        if (apiForm.id) {
+                            await makeRequest(`/api/v1/apis/${apiForm.id}`, {
+                                method: 'PUT',
+                                body: JSON.stringify(data)
+                            });
+                            ElMessage.success('接口更新成功');
+                        } else {
+                            await makeRequest('/api/v1/apis/', {
+                                method: 'POST',
+                                body: JSON.stringify(data)
+                            });
+                            ElMessage.success('接口创建成功');
+                        }
+
+                        apiDialogVisible.value = false;
+                        await loadAPIs();
+                    } catch (error) {
+                        ElMessage.error('保存接口失败: ' + error.message);
+                    } finally {
+                        apiLoading.value = false;
+                    }
+                };
+
+                const handleEditAPI = (api) => {
+                    apiForm.id = api.id;
+                    apiForm.name = api.name;
+                    apiForm.method = api.method;
+                    apiForm.url = api.url;
+                    apiForm.description = api.description || '';
+                    apiForm.category_id = api.category_id;
+                    apiDialogVisible.value = true;
+                };
+
+                const handleViewAPI = (api) => {
+                    ElMessage.info(`查看接口: ${api.name} (${api.method} ${api.url})`);
+                };
+
+                const handleTestAPI = (api) => {
+                    ElMessage.info(`测试接口: ${api.name} - 功能开发中`);
+                };
+
+                const handleDeleteAPI = async (id) => {
+                    try {
+                        await ElMessageBox.confirm('确认删除此接口吗？', '警告', {
+                            confirmButtonText: '确认',
+                            cancelButtonText: '取消',
+                            type: 'warning'
+                        });
+
+                        await makeRequest(`/api/v1/apis/${id}`, {
+                            method: 'DELETE'
+                        });
+                        ElMessage.success('接口删除成功');
+                        await loadAPIs();
+                    } catch (error) {
+                        if (error !== 'cancel') {
+                            ElMessage.error('删除接口失败: ' + error.message);
+                        }
+                    }
+                };
+
+                // 工具方法
+                const getMethodType = (method) => {
+                    const types = {
+                        GET: 'success',
+                        POST: 'primary', 
+                        PUT: 'warning',
+                        DELETE: 'danger',
+                        PATCH: 'info'
+                    };
+                    return types[method.toUpperCase()] || 'info';
+                };
+
+                const formatDateTime = (dateTime) => {
+                    if (!dateTime) return '-';
+                    return new Date(dateTime).toLocaleString('zh-CN');
+                };
+
+                // 生命周期
+                onMounted(async () => {
+                    console.log('页面加载，开始获取数据...');
+                    await loadCategories();
+                    await loadAPIs();
+                });
+
+                return {
+                    loading,
+                    categoryLoading,
+                    apiLoading,
+                    isConnected,
+                    searchKeyword,
+                    selectedCategoryId,
+                    categories,
+                    apis,
+                    categoryDialogVisible,
+                    categoryForm,
+                    categoryRules,
+                    apiDialogVisible,
+                    apiForm,
+                    apiRules,
+                    getAPICountByCategory,
+                    handleSearch,
+                    handleReset,
+                    showCreateCategoryDialog,
+                    handleSaveCategory,
+                    handleDeleteCategory,
+                    handleCategoryClick,
+                    showCreateAPIDialog,
+                    handleSaveAPI,
+                    handleEditAPI,
+                    handleViewAPI,
+                    handleTestAPI,
+                    handleDeleteAPI,
+                    getMethodType,
+                    formatDateTime
+                };
+            }
+        });
+
+        app.use(ElementPlus);
+        app.mount('#app');
+    </script>
+</body>
+</html> 

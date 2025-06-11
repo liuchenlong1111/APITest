@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>分类创建测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #1a1a1a;
+            color: #fff;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #333;
+            border-radius: 8px;
+            background: #2a2a2a;
+        }
+        .section h2 {
+            color: #00d4ff;
+            margin-top: 0;
+        }
+        select, input, textarea, button {
+            background: #333;
+            color: #fff;
+            border: 1px solid #555;
+            padding: 8px 12px;
+            border-radius: 4px;
+            margin: 5px;
+            width: 200px;
+        }
+        button {
+            background: #00d4ff;
+            color: #000;
+            cursor: pointer;
+            width: auto;
+        }
+        .result {
+            background: #333;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 10px 0;
+            white-space: pre-wrap;
+            font-family: monospace;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .success { border-left: 4px solid #67c23a; }
+        .error { border-left: 4px solid #f56c6c; }
+        .info { border-left: 4px solid #409eff; }
+        .form-row {
+            margin-bottom: 15px;
+        }
+        .form-label {
+            display: inline-block;
+            width: 100px;
+            color: #ccc;
+        }
+        .data-list {
+            background: #333;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+        .data-item {
+            padding: 5px;
+            border-bottom: 1px solid #555;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📝 分类创建测试</h1>
+        
+        <div class="section">
+            <h2>1. 加载基础数据</h2>
+            <button onclick="loadProjects()">加载项目列表</button>
+            <div id="projectsResult" class="result"></div>
+            
+            <div class="form-row">
+                <label class="form-label">选择项目:</label>
+                <select id="projectSelect">
+                    <option value="">请选择项目...</option>
+                </select>
+                <button onclick="loadProjectModules()">加载该项目的模块</button>
+            </div>
+            
+            <div id="modulesResult" class="result"></div>
+        </div>
+
+        <div class="section">
+            <h2>2. 创建分类</h2>
+            <div class="form-row">
+                <label class="form-label">分类名称:</label>
+                <input type="text" id="categoryName" placeholder="输入分类名称" />
+            </div>
+            <div class="form-row">
+                <label class="form-label">分类描述:</label>
+                <textarea id="categoryDesc" placeholder="输入分类描述" style="width: 300px; height: 60px;"></textarea>
+            </div>
+            <div class="form-row">
+                <label class="form-label">所属模块:</label>
+                <select id="moduleSelect">
+                    <option value="">请先选择项目并加载模块</option>
+                </select>
+            </div>
+            <div class="form-row">
+                <label class="form-label">分类颜色:</label>
+                <input type="color" id="categoryColor" value="#00d4ff" />
+            </div>
+            
+            <button onclick="createCategory()">创建分类</button>
+            <div id="createResult" class="result"></div>
+        </div>
+
+        <div class="section">
+            <h2>3. 验证结果</h2>
+            <button onclick="loadCategories()">重新加载分类列表</button>
+            <div id="categoriesResult" class="result"></div>
+        </div>
+    </div>
+
+    <script>
+        let projects = [];
+        let modules = [];
+        let categories = [];
+
+        // 加载项目列表
+        async function loadProjects() {
+            try {
+                const response = await fetch('/api/v1/projects/');
+                projects = await response.json();
+                
+                const select = document.getElementById('projectSelect');
+                select.innerHTML = '<option value="">请选择项目...</option>';
+                projects.forEach(project => {
+                    const option = document.createElement('option');
+                    option.value = project.id;
+                    option.textContent = `${project.name} (模块: ${project.module_count || 0})`;
+                    select.appendChild(option);
+                });
+                
+                setResult('projectsResult', `项目列表加载完成 - 共 ${projects.length} 个项目`, 'success');
+            } catch (error) {
+                setResult('projectsResult', '加载项目列表失败: ' + error.message, 'error');
+            }
+        }
+
+        // 加载项目模块
+        async function loadProjectModules() {
+            const projectId = document.getElementById('projectSelect').value;
+            if (!projectId) {
+                setResult('modulesResult', '请先选择项目', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/v1/projects/${projectId}/modules`);
+                modules = await response.json();
+                
+                const select = document.getElementById('moduleSelect');
+                select.innerHTML = '<option value="">请选择模块...</option>';
+                
+                if (modules.length === 0) {
+                    select.innerHTML = '<option value="">该项目暂无模块</option>';
+                    setResult('modulesResult', '该项目暂无模块，无法创建分类', 'error');
+                } else {
+                    modules.forEach(module => {
+                        const option = document.createElement('option');
+                        option.value = module.id;
+                        option.textContent = `${module.name} - ${module.description || '无描述'}`;
+                        select.appendChild(option);
+                    });
+                    setResult('modulesResult', `模块列表加载完成 - 共 ${modules.length} 个模块`, 'success');
+                }
+            } catch (error) {
+                setResult('modulesResult', '加载模块列表失败: ' + error.message, 'error');
+            }
+        }
+
+        // 创建分类
+        async function createCategory() {
+            const name = document.getElementById('categoryName').value;
+            const description = document.getElementById('categoryDesc').value;
+            const moduleId = document.getElementById('moduleSelect').value;
+            const color = document.getElementById('categoryColor').value;
+
+            if (!name) {
+                setResult('createResult', '请输入分类名称', 'error');
+                return;
+            }
+
+            if (!moduleId) {
+                setResult('createResult', '请选择所属模块', 'error');
+                return;
+            }
+
+            const data = {
+                name: name,
+                description: description,
+                color: color,
+                module_id: parseInt(moduleId)
+            };
+
+            try {
+                const response = await fetch('/api/v1/apis/categories/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    setResult('createResult', `分类创建成功！\nID: ${result.id}\n名称: ${result.name}\n模块: ${getModuleName(result.module_id)}`, 'success');
+                    
+                    // 清空表单
+                    document.getElementById('categoryName').value = '';
+                    document.getElementById('categoryDesc').value = '';
+                } else {
+                    const error = await response.json();
+                    setResult('createResult', `分类创建失败: ${error.detail || response.statusText}`, 'error');
+                }
+            } catch (error) {
+                setResult('createResult', '分类创建失败: ' + error.message, 'error');
+            }
+        }
+
+        // 加载分类列表
+        async function loadCategories() {
+            const projectId = document.getElementById('projectSelect').value;
+            if (!projectId) {
+                setResult('categoriesResult', '请先选择项目', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/v1/apis/categories/?project_id=${projectId}`);
+                categories = await response.json();
+                
+                let result = `分类列表加载完成 - 共 ${categories.length} 个分类\n\n`;
+                categories.forEach(cat => {
+                    result += `- ${cat.name} (${getModuleName(cat.module_id)}) [${cat.color}]\n`;
+                    if (cat.description) {
+                        result += `  描述: ${cat.description}\n`;
+                    }
+                    result += '\n';
+                });
+                
+                setResult('categoriesResult', result, 'success');
+            } catch (error) {
+                setResult('categoriesResult', '加载分类列表失败: ' + error.message, 'error');
+            }
+        }
+
+        // 工具方法
+        function getModuleName(moduleId) {
+            const module = modules.find(m => m.id === moduleId);
+            return module ? module.name : `模块ID:${moduleId}`;
+        }
+
+        function setResult(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.className = `result ${type}`;
+        }
+
+        // 页面加载时自动加载项目
+        window.addEventListener('load', loadProjects);
+    </script>
+</body>
+</html> 

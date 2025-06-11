@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>分类与模块关系测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #1a1a1a;
+            color: #fff;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #333;
+            border-radius: 8px;
+            background: #2a2a2a;
+        }
+        .section h2 {
+            color: #00d4ff;
+            margin-top: 0;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+        }
+        .card {
+            background: #333;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #555;
+        }
+        .card h3 {
+            color: #00d4ff;
+            margin-top: 0;
+            font-size: 16px;
+        }
+        .category-item {
+            background: #444;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+            border-left: 3px solid #00d4ff;
+        }
+        .category-color {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        .module-info {
+            font-size: 12px;
+            color: #888;
+            margin-top: 5px;
+        }
+        .api-count {
+            font-size: 11px;
+            background: #555;
+            padding: 2px 6px;
+            border-radius: 10px;
+            margin-left: 10px;
+        }
+        select, button {
+            background: #333;
+            color: #fff;
+            border: 1px solid #555;
+            padding: 8px 12px;
+            border-radius: 4px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button {
+            background: #00d4ff;
+            color: #000;
+            cursor: pointer;
+        }
+        .result {
+            background: #333;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 10px 0;
+            white-space: pre-wrap;
+            font-family: monospace;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .success { border-left: 4px solid #67c23a; }
+        .error { border-left: 4px solid #f56c6c; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔗 分类与模块关系测试</h1>
+        
+        <div class="section">
+            <h2>选择项目</h2>
+            <select id="projectSelect">
+                <option value="">选择项目...</option>
+            </select>
+            <button onclick="loadProjectData()">加载项目数据</button>
+            <div id="status" class="result"></div>
+        </div>
+
+        <div class="section">
+            <h2>📂 分类与模块关系</h2>
+            <div id="categoryModuleGrid" class="grid">
+                <div class="card">请先选择项目</div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🔧 模块详情</h2>
+            <div id="modulesGrid" class="grid">
+                <div class="card">请先选择项目</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let projects = [];
+        let modules = [];
+        let categories = [];
+        let apis = [];
+
+        // 初始化
+        async function init() {
+            try {
+                const response = await fetch('/api/v1/projects/');
+                projects = await response.json();
+                
+                const select = document.getElementById('projectSelect');
+                select.innerHTML = '<option value="">选择项目...</option>';
+                projects.forEach(project => {
+                    const option = document.createElement('option');
+                    option.value = project.id;
+                    option.textContent = `${project.name} (分类: ${project.category_count}, 接口: ${project.api_count})`;
+                    select.appendChild(option);
+                });
+                
+                setStatus('项目列表加载完成');
+            } catch (error) {
+                setStatus('加载项目列表失败: ' + error.message, 'error');
+            }
+        }
+
+        // 加载项目数据
+        async function loadProjectData() {
+            const projectId = document.getElementById('projectSelect').value;
+            if (!projectId) {
+                setStatus('请先选择项目', 'error');
+                return;
+            }
+
+            setStatus('正在加载项目数据...');
+
+            try {
+                // 并行加载模块、分类、接口
+                const [modulesResponse, categoriesResponse, apisResponse] = await Promise.all([
+                    fetch(`/api/v1/projects/${projectId}/modules`),
+                    fetch(`/api/v1/apis/categories/?project_id=${projectId}`),
+                    fetch(`/api/v1/apis/?project_id=${projectId}`)
+                ]);
+
+                modules = await modulesResponse.json();
+                categories = await categoriesResponse.json();
+                apis = await apisResponse.json();
+
+                setStatus(`数据加载完成 - 模块: ${modules.length}, 分类: ${categories.length}, 接口: ${apis.length}`, 'success');
+                
+                updateCategoryModuleGrid();
+                updateModulesGrid();
+            } catch (error) {
+                setStatus('加载项目数据失败: ' + error.message, 'error');
+            }
+        }
+
+        // 更新分类与模块关系网格
+        function updateCategoryModuleGrid() {
+            const container = document.getElementById('categoryModuleGrid');
+            
+            if (categories.length === 0) {
+                container.innerHTML = '<div class="card">该项目暂无分类</div>';
+                return;
+            }
+
+            // 按模块分组显示分类
+            const moduleGroups = {};
+            categories.forEach(category => {
+                const moduleId = category.module_id;
+                if (!moduleGroups[moduleId]) {
+                    const module = modules.find(m => m.id === moduleId);
+                    moduleGroups[moduleId] = {
+                        module: module,
+                        categories: []
+                    };
+                }
+                moduleGroups[moduleId].categories.push(category);
+            });
+
+            container.innerHTML = Object.values(moduleGroups).map(group => {
+                return `
+                    <div class="card">
+                        <h3>🔧 ${group.module?.name || '未知模块'}</h3>
+                        <div style="font-size: 12px; color: #888; margin-bottom: 10px;">
+                            ${group.module?.description || '暂无描述'}
+                        </div>
+                        ${group.categories.map(category => {
+                            const categoryApis = apis.filter(api => api.category_id === category.id);
+                            return `
+                                <div class="category-item">
+                                    <span class="category-color" style="background-color: ${category.color}"></span>
+                                    <strong>${category.name}</strong>
+                                    <span class="api-count">${categoryApis.length} 个接口</span>
+                                    <div class="module-info">
+                                        ${category.description || '暂无描述'}
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // 更新模块网格
+        function updateModulesGrid() {
+            const container = document.getElementById('modulesGrid');
+            
+            if (modules.length === 0) {
+                container.innerHTML = '<div class="card">该项目暂无模块</div>';
+                return;
+            }
+
+            container.innerHTML = modules.map(module => {
+                const moduleCategories = categories.filter(cat => cat.module_id === module.id);
+                const moduleApis = apis.filter(api => 
+                    moduleCategories.some(cat => cat.id === api.category_id)
+                );
+                
+                return `
+                    <div class="card">
+                        <h3>${module.icon || '🔧'} ${module.name}</h3>
+                        <div style="font-size: 12px; color: #888; margin-bottom: 10px;">
+                            ${module.description || '暂无描述'}
+                        </div>
+                        <div style="margin-bottom: 10px;">
+                            <span style="background: #555; padding: 3px 8px; border-radius: 10px; font-size: 11px;">
+                                分类: ${moduleCategories.length}
+                            </span>
+                            <span style="background: #555; padding: 3px 8px; border-radius: 10px; font-size: 11px; margin-left: 5px;">
+                                接口: ${moduleApis.length}
+                            </span>
+                        </div>
+                        <div style="max-height: 100px; overflow-y: auto;">
+                            ${moduleCategories.map(cat => `
+                                <div style="font-size: 12px; padding: 2px 0;">
+                                    <span style="color: ${cat.color}">●</span> ${cat.name}
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // 设置状态
+        function setStatus(message, type = 'info') {
+            const statusEl = document.getElementById('status');
+            statusEl.textContent = message;
+            statusEl.className = `result ${type}`;
+        }
+
+        // 页面加载时初始化
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html> 

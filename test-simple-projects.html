@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>简单项目测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #1a1a1a;
+            color: #fff;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        select {
+            background: #333;
+            color: #fff;
+            border: 1px solid #555;
+            padding: 10px;
+            border-radius: 4px;
+            width: 100%;
+            margin: 10px 0;
+        }
+        .result {
+            background: #333;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 10px 0;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+        .success { border-left: 4px solid #67c23a; }
+        .error { border-left: 4px solid #f56c6c; }
+        .info { border-left: 4px solid #409eff; }
+        button {
+            background: #00d4ff;
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 简单项目测试</h1>
+        
+        <div class="result info">正在加载项目列表...</div>
+        
+        <select id="projectSelect">
+            <option value="">加载中...</option>
+        </select>
+        
+        <button onclick="refreshProjects()">刷新项目列表</button>
+        <button onclick="testSelectedProject()">测试选中项目</button>
+        
+        <div id="result" class="result"></div>
+    </div>
+
+    <script>
+        let projects = [];
+
+        // 加载项目列表
+        async function loadProjects() {
+            const resultEl = document.querySelector('.result.info');
+            const selectEl = document.getElementById('projectSelect');
+            
+            try {
+                resultEl.textContent = '正在加载项目列表...';
+                
+                const response = await fetch('/api/v1/projects/');
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                projects = data;
+                
+                // 填充选择器
+                selectEl.innerHTML = '<option value="">选择项目...</option>';
+                data.forEach(project => {
+                    const option = document.createElement('option');
+                    option.value = project.id;
+                    option.textContent = `${project.name} (ID: ${project.id})`;
+                    selectEl.appendChild(option);
+                });
+                
+                resultEl.textContent = `✅ 成功加载 ${data.length} 个项目`;
+                resultEl.className = 'result success';
+                
+            } catch (error) {
+                resultEl.textContent = `❌ 加载失败: ${error.message}`;
+                resultEl.className = 'result error';
+                
+                selectEl.innerHTML = '<option value="">加载失败</option>';
+            }
+        }
+
+        // 刷新项目列表
+        async function refreshProjects() {
+            await loadProjects();
+        }
+
+        // 测试选中的项目
+        async function testSelectedProject() {
+            const selectEl = document.getElementById('projectSelect');
+            const resultEl = document.getElementById('result');
+            
+            const selectedId = selectEl.value;
+            
+            if (!selectedId) {
+                resultEl.textContent = '请先选择一个项目';
+                resultEl.className = 'result error';
+                return;
+            }
+            
+            try {
+                resultEl.textContent = '正在测试选中的项目...';
+                resultEl.className = 'result info';
+                
+                const selectedProject = projects.find(p => p.id == selectedId);
+                
+                // 测试获取项目的模块
+                const modulesResponse = await fetch(`/api/v1/projects/${selectedId}/modules`);
+                const modules = await modulesResponse.json();
+                
+                // 测试获取项目的分类
+                const categoriesResponse = await fetch(`/api/v1/apis/categories/?project_id=${selectedId}`);
+                const categories = await categoriesResponse.json();
+                
+                // 测试获取项目的接口
+                const apisResponse = await fetch(`/api/v1/apis/?project_id=${selectedId}`);
+                const apis = await apisResponse.json();
+                
+                resultEl.textContent = `✅ 项目测试成功:
+
+项目信息:
+  ID: ${selectedProject.id}
+  名称: ${selectedProject.name}
+  描述: ${selectedProject.description || '无'}
+
+统计信息:
+  模块数量: ${modules.length}
+  分类数量: ${categories.length}
+  接口数量: ${apis.length}
+
+模块列表:
+${modules.map(m => `  - ${m.name} (ID: ${m.id})`).join('\n')}
+
+分类列表:
+${categories.map(c => `  - ${c.name} (ID: ${c.id}, 模块: ${c.module_id})`).join('\n')}
+
+接口列表:
+${apis.slice(0, 5).map(a => `  - ${a.method} ${a.name} (分类: ${a.category_id || '未分类'})`).join('\n')}
+${apis.length > 5 ? `  ... 还有 ${apis.length - 5} 个接口` : ''}`;
+                
+                resultEl.className = 'result success';
+                
+            } catch (error) {
+                resultEl.textContent = `❌ 项目测试失败: ${error.message}`;
+                resultEl.className = 'result error';
+            }
+        }
+
+        // 页面加载时自动加载项目
+        window.addEventListener('load', loadProjects);
+    </script>
+</body>
+</html> 

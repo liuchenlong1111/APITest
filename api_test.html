@@ -1,0 +1,4465 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API测试平台 - 科幻版</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background: linear-gradient(135deg, #0c0c0c 0%, #1a1a2e 50%, #16213e 100%);
+            color: #e0e6ed;
+            overflow-x: hidden;
+        }
+
+        /* 科幻背景动画 */
+        .bg-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            opacity: 0.1;
+        }
+
+        .bg-animation::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 80%, #00d4ff 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, #ff0080 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, #8000ff 0%, transparent 50%);
+            animation: pulse 4s ease-in-out infinite alternate;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.1; }
+            100% { opacity: 0.3; }
+        }
+
+        /* 主容器 */
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+
+        /* 左侧菜单 */
+        .sidebar {
+            width: 280px;
+            background: linear-gradient(180deg, #1e1e2e 0%, #2d2d44 100%);
+            border-right: 2px solid #00d4ff;
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+            overflow-y: auto;
+        }
+
+        .logo {
+            padding: 20px;
+            text-align: center;
+            border-bottom: 1px solid #444;
+            background: linear-gradient(45deg, #00d4ff, #8000ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .logo h1 {
+            font-size: 24px;
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+        }
+
+        .menu-section {
+            margin: 20px 0;
+        }
+
+        .menu-title {
+            padding: 15px 20px;
+            font-size: 16px;
+            font-weight: bold;
+            color: #00d4ff;
+            border-left: 4px solid #00d4ff;
+            background: rgba(0, 212, 255, 0.1);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .menu-item {
+            padding: 12px 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-left: 3px solid transparent;
+            position: relative;
+        }
+
+        .menu-item:hover {
+            background: linear-gradient(90deg, rgba(0, 212, 255, 0.2), transparent);
+            border-left-color: #00d4ff;
+            transform: translateX(5px);
+        }
+
+        .menu-item.active {
+            background: linear-gradient(90deg, rgba(0, 212, 255, 0.3), transparent);
+            border-left-color: #00d4ff;
+            color: #00d4ff;
+        }
+
+        .submenu {
+            padding-left: 40px;
+            font-size: 14px;
+            color: #b0b0b0;
+        }
+
+        /* 主内容区 */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 顶部工具栏 */
+        .toolbar {
+            height: 60px;
+            background: linear-gradient(90deg, #2d2d44, #3d3d54);
+            border-bottom: 2px solid #00d4ff;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .config-section {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .config-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .config-item label {
+            color: #00d4ff;
+            font-weight: bold;
+        }
+
+        .config-input {
+            padding: 8px 12px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid #00d4ff;
+            border-radius: 4px;
+            color: #e0e6ed;
+            font-size: 14px;
+        }
+
+        .config-input:focus {
+            outline: none;
+            box-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+        }
+
+        /* 内容面板 */
+        .content-panel {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .panel-header {
+            margin-bottom: 20px;
+        }
+
+        .panel-title {
+            font-size: 24px;
+            color: #00d4ff;
+            margin-bottom: 10px;
+            text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+        }
+
+        .panel-subtitle {
+            color: #b0b0b0;
+            font-size: 14px;
+        }
+
+        /* 测试类型选择 */
+        .test-types {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .test-type-card {
+            flex: 1;
+            padding: 20px;
+            background: linear-gradient(135deg, #2d2d44, #3d3d54);
+            border: 2px solid transparent;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .test-type-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0, 212, 255, 0.2), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .test-type-card:hover::before {
+            left: 100%;
+        }
+
+        .test-type-card:hover {
+            border-color: #00d4ff;
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 212, 255, 0.3);
+        }
+
+        .test-type-card.active {
+            border-color: #00d4ff;
+            background: linear-gradient(135deg, rgba(0, 212, 255, 0.2), rgba(128, 0, 255, 0.2));
+        }
+
+        .test-type-icon {
+            font-size: 32px;
+            margin-bottom: 10px;
+            color: #00d4ff;
+        }
+
+        .test-type-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .test-type-desc {
+            font-size: 12px;
+            color: #b0b0b0;
+        }
+
+        /* 接口列表 */
+        .api-list {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .api-list-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .api-list-title {
+            font-size: 18px;
+            color: #00d4ff;
+        }
+
+        .api-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            background: linear-gradient(90deg, rgba(45, 45, 68, 0.5), rgba(61, 61, 84, 0.5));
+            border-radius: 8px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-left: 4px solid transparent;
+        }
+
+        .api-item:hover {
+            background: linear-gradient(90deg, rgba(0, 212, 255, 0.1), rgba(128, 0, 255, 0.1));
+            border-left-color: #00d4ff;
+            transform: translateX(5px);
+        }
+
+        .api-method {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-right: 15px;
+            min-width: 60px;
+            text-align: center;
+        }
+
+        .method-get { background: #28a745; }
+        .method-post { background: #007bff; }
+        .method-put { background: #ffc107; color: #000; }
+        .method-delete { background: #dc3545; }
+
+        .api-info {
+            flex: 1;
+        }
+
+        .api-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .api-url {
+            font-size: 12px;
+            color: #b0b0b0;
+            font-family: 'Courier New', monospace;
+        }
+
+        .api-status {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+
+        .status-ready { background: #28a745; }
+        .status-testing { background: #ffc107; color: #000; }
+        .status-success { background: #28a745; }
+        .status-failed { background: #dc3545; }
+
+        /* 按钮样式 */
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #00d4ff, #0099cc);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(45deg, #0099cc, #00d4ff);
+            box-shadow: 0 5px 15px rgba(0, 212, 255, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background: linear-gradient(45deg, #28a745, #20c997);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: linear-gradient(45deg, #20c997, #28a745);
+            box-shadow: 0 5px 15px rgba(40, 167, 69, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .btn-warning {
+            background: linear-gradient(45deg, #ffc107, #fd7e14);
+            color: #000;
+        }
+
+        .btn-warning:hover {
+            background: linear-gradient(45deg, #fd7e14, #ffc107);
+            box-shadow: 0 5px 15px rgba(255, 193, 7, 0.4);
+            transform: translateY(-2px);
+        }
+
+        /* 测试结果面板 */
+        .test-results {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+            border: 1px solid #444;
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .result-title {
+            color: #00d4ff;
+            font-size: 18px;
+        }
+
+        .result-stats {
+            display: flex;
+            gap: 20px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #00d4ff;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #b0b0b0;
+        }
+
+        /* 接口选择容器 */
+        .api-selection-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .available-apis, .selected-apis {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            padding: 20px;
+        }
+
+        .available-apis {
+            border: 2px solid #00d4ff;
+        }
+
+        .selected-apis {
+            border: 2px solid #28a745;
+        }
+
+        .api-item-selectable {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            background: linear-gradient(90deg, rgba(45, 45, 68, 0.5), rgba(61, 61, 84, 0.5));
+            border-radius: 8px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-left: 4px solid transparent;
+            position: relative;
+        }
+
+        .api-item-selectable:hover {
+            background: linear-gradient(90deg, rgba(0, 212, 255, 0.1), rgba(128, 0, 255, 0.1));
+            border-left-color: #00d4ff;
+            transform: translateX(5px);
+        }
+
+        .api-item-selectable.selected {
+            background: linear-gradient(90deg, rgba(40, 167, 69, 0.2), rgba(32, 201, 151, 0.2));
+            border-left-color: #28a745;
+        }
+
+        .api-checkbox {
+            margin-right: 15px;
+            width: 18px;
+            height: 18px;
+            border: 2px solid #00d4ff;
+            border-radius: 4px;
+            background: transparent;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .api-checkbox.checked {
+            background: #00d4ff;
+            border-color: #00d4ff;
+        }
+
+        .api-checkbox.checked::after {
+            content: '✓';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #000;
+            font-weight: bold;
+            font-size: 12px;
+        }
+
+        .selected-api-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            background: linear-gradient(90deg, rgba(40, 167, 69, 0.3), rgba(32, 201, 151, 0.3));
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-left: 4px solid #28a745;
+            position: relative;
+        }
+
+        .drag-handle {
+            margin-right: 10px;
+            color: #28a745;
+            cursor: grab;
+            font-size: 16px;
+        }
+
+        .drag-handle:active {
+            cursor: grabbing;
+        }
+
+        .remove-btn {
+            margin-left: auto;
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 5px 10px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .remove-btn:hover {
+            background: #c82333;
+            transform: scale(1.1);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #b0b0b0;
+            font-style: italic;
+        }
+
+        .order-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            margin-left: 10px;
+        }
+
+        .order-btn {
+            background: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            padding: 2px 6px;
+            cursor: pointer;
+            font-size: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .order-btn:hover {
+            background: #5a6268;
+        }
+
+        /* 场景管理样式 */
+        .scenario-management {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 2px solid #8000ff;
+        }
+
+        .scenario-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .scenario-card {
+            background: linear-gradient(135deg, rgba(128, 0, 255, 0.1), rgba(0, 212, 255, 0.1));
+            border: 1px solid #8000ff;
+            border-radius: 8px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .scenario-card:hover {
+            border-color: #00d4ff;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(128, 0, 255, 0.3);
+        }
+
+        .scenario-card.active {
+            border-color: #00d4ff;
+            background: linear-gradient(135deg, rgba(0, 212, 255, 0.2), rgba(128, 0, 255, 0.2));
+        }
+
+        .scenario-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .scenario-name {
+            font-weight: bold;
+            color: #00d4ff;
+            font-size: 16px;
+        }
+
+        .scenario-actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .scenario-btn {
+            background: transparent;
+            border: 1px solid #6c757d;
+            color: #6c757d;
+            border-radius: 4px;
+            padding: 4px 8px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .scenario-btn:hover {
+            background: #6c757d;
+            color: white;
+        }
+
+        .scenario-btn.edit:hover {
+            background: #ffc107;
+            border-color: #ffc107;
+            color: #000;
+        }
+
+        .scenario-btn.delete:hover {
+            background: #dc3545;
+            border-color: #dc3545;
+            color: white;
+        }
+
+        .scenario-btn.run:hover {
+            background: #28a745;
+            border-color: #28a745;
+            color: white;
+        }
+
+        .scenario-info {
+            font-size: 12px;
+            color: #b0b0b0;
+            margin-bottom: 10px;
+        }
+
+        .scenario-apis {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+
+        .scenario-api-tag {
+            background: rgba(0, 212, 255, 0.2);
+            border: 1px solid #00d4ff;
+            border-radius: 12px;
+            padding: 2px 8px;
+            font-size: 10px;
+            color: #00d4ff;
+        }
+
+        /* 场景创建器 */
+        .scenario-creator {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 2px solid #00d4ff;
+        }
+
+        .scenario-form {
+            display: grid;
+            gap: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .form-group label {
+            color: #00d4ff;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .form-input {
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid #00d4ff;
+            border-radius: 6px;
+            color: #e0e6ed;
+            font-size: 14px;
+        }
+
+        .form-input:focus {
+            outline: none;
+            box-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+        }
+
+        .form-textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+
+        /* 参数配置 */
+        .param-config {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 10px;
+            border: 1px solid #444;
+        }
+
+        .param-config-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .param-config-title {
+            color: #00d4ff;
+            font-weight: bold;
+        }
+
+        .param-mapping {
+            display: grid;
+            gap: 10px;
+        }
+
+        .param-row {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr auto;
+            gap: 10px;
+            align-items: center;
+            padding: 10px;
+            background: rgba(45, 45, 68, 0.5);
+            border-radius: 6px;
+        }
+
+        .param-select {
+            padding: 6px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid #6c757d;
+            border-radius: 4px;
+            color: #e0e6ed;
+            font-size: 12px;
+        }
+
+        .param-arrow {
+            color: #00d4ff;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .remove-param-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 4px 8px;
+            cursor: pointer;
+            font-size: 10px;
+        }
+
+        .add-param-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+
+        /* 场景步骤 */
+        .scenario-steps {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+
+        .scenario-step {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            background: linear-gradient(90deg, rgba(45, 45, 68, 0.5), rgba(61, 61, 84, 0.5));
+            border-radius: 6px;
+            margin-bottom: 10px;
+            border-left: 4px solid #00d4ff;
+        }
+
+        .step-number {
+            background: #00d4ff;
+            color: #000;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 12px;
+            margin-right: 15px;
+        }
+
+        .step-content {
+            flex: 1;
+        }
+
+        .step-api {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .step-params {
+            font-size: 12px;
+            color: #b0b0b0;
+        }
+
+        .step-actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .step-btn {
+            background: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 4px 8px;
+            cursor: pointer;
+            font-size: 10px;
+        }
+
+        .step-btn:hover {
+            background: #5a6268;
+        }
+
+        /* 导入接口文档样式 */
+        .import-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .import-modal-content {
+            background: linear-gradient(135deg, #1e1e2e, #2d2d44);
+            border-radius: 15px;
+            padding: 30px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 90vh;
+            overflow-y: auto;
+            border: 2px solid #00d4ff;
+            box-shadow: 0 20px 40px rgba(0, 212, 255, 0.3);
+        }
+
+        .import-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #444;
+        }
+
+        .import-modal-title {
+            font-size: 24px;
+            color: #00d4ff;
+            font-weight: bold;
+        }
+
+        .close-btn {
+            background: transparent;
+            border: none;
+            color: #b0b0b0;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+
+        .close-btn:hover {
+            background: #dc3545;
+            color: white;
+        }
+
+        .import-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #444;
+        }
+
+        .import-tab {
+            padding: 10px 20px;
+            background: transparent;
+            border: none;
+            color: #b0b0b0;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+
+        .import-tab.active {
+            color: #00d4ff;
+            border-bottom-color: #00d4ff;
+        }
+
+        .import-tab:hover {
+            color: #00d4ff;
+        }
+
+        .import-content {
+            display: none;
+        }
+
+        .import-content.active {
+            display: block;
+        }
+
+        .file-upload-area {
+            border: 2px dashed #00d4ff;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .file-upload-area:hover {
+            background: rgba(0, 212, 255, 0.1);
+            border-color: #8000ff;
+        }
+
+        .file-upload-area.dragover {
+            background: rgba(0, 212, 255, 0.2);
+            border-color: #8000ff;
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            color: #00d4ff;
+            margin-bottom: 15px;
+        }
+
+        .upload-text {
+            color: #e0e6ed;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+
+        .upload-hint {
+            color: #b0b0b0;
+            font-size: 12px;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .url-input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .url-input {
+            flex: 1;
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid #00d4ff;
+            border-radius: 6px;
+            color: #e0e6ed;
+            font-size: 14px;
+        }
+
+        .url-input:focus {
+            outline: none;
+            box-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+        }
+
+        .import-btn {
+            padding: 12px 24px;
+            background: linear-gradient(45deg, #00d4ff, #0099cc);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .import-btn:hover {
+            background: linear-gradient(45deg, #0099cc, #00d4ff);
+            transform: translateY(-2px);
+        }
+
+        .import-btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .json-editor {
+            width: 100%;
+            min-height: 300px;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid #444;
+            border-radius: 8px;
+            color: #e0e6ed;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            resize: vertical;
+        }
+
+        .json-editor:focus {
+            outline: none;
+            border-color: #00d4ff;
+            box-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
+        }
+
+        .import-preview {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+            border: 1px solid #444;
+        }
+
+        .preview-header {
+            color: #00d4ff;
+            font-weight: bold;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .preview-stats {
+            font-size: 12px;
+            color: #b0b0b0;
+        }
+
+        .preview-apis {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .preview-api-item {
+            display: flex;
+            align-items: center;
+            padding: 8px;
+            background: rgba(45, 45, 68, 0.5);
+            border-radius: 4px;
+            margin-bottom: 5px;
+            font-size: 12px;
+        }
+
+        .preview-method {
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-weight: bold;
+            margin-right: 10px;
+            min-width: 45px;
+            text-align: center;
+        }
+
+        .import-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #444;
+        }
+
+        /* 分类管理样式 */
+        .category-manager {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 2px solid #00d4ff;
+        }
+
+        .category-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .category-card {
+            background: linear-gradient(135deg, rgba(0, 212, 255, 0.1), rgba(128, 0, 255, 0.1));
+            border: 2px solid transparent;
+            border-radius: 8px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .category-card:hover {
+            border-color: #00d4ff;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 212, 255, 0.3);
+        }
+
+        .category-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .category-name {
+            font-weight: bold;
+            color: #00d4ff;
+            font-size: 16px;
+        }
+
+        .category-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 2px solid #fff;
+        }
+
+        .category-description {
+            font-size: 12px;
+            color: #b0b0b0;
+            margin-bottom: 10px;
+        }
+
+        .category-stats {
+            font-size: 12px;
+            color: #00d4ff;
+        }
+
+        .category-actions {
+            display: flex;
+            gap: 5px;
+            margin-top: 10px;
+        }
+
+        .category-btn {
+            background: transparent;
+            border: 1px solid #6c757d;
+            color: #6c757d;
+            border-radius: 4px;
+            padding: 4px 8px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .category-btn:hover {
+            background: #6c757d;
+            color: white;
+        }
+
+        .category-btn.edit:hover {
+            background: #ffc107;
+            border-color: #ffc107;
+            color: #000;
+        }
+
+        .category-btn.delete:hover {
+            background: #dc3545;
+            border-color: #dc3545;
+            color: white;
+        }
+
+        /* 分类编辑器 */
+        .category-editor {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 2px solid #00d4ff;
+        }
+
+        .color-picker {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .color-option {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .color-option.selected {
+            border-color: #fff;
+            transform: scale(1.2);
+        }
+
+        /* 分类化的接口列表 */
+        .categorized-api-list {
+            margin-bottom: 20px;
+        }
+
+        .category-section {
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            margin-bottom: 15px;
+            overflow: hidden;
+            border-left: 4px solid var(--category-color, #00d4ff);
+        }
+
+        .category-section-header {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .category-section-header:hover {
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        .category-section-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: bold;
+            color: var(--category-color, #00d4ff);
+        }
+
+        .category-section-toggle {
+            font-size: 18px;
+            transition: transform 0.3s ease;
+        }
+
+        .category-section.collapsed .category-section-toggle {
+            transform: rotate(-90deg);
+        }
+
+        .category-section-content {
+            padding: 0 20px 15px;
+            transition: all 0.3s ease;
+        }
+
+        .category-section.collapsed .category-section-content {
+            display: none;
+        }
+
+        .uncategorized-section {
+            border-left-color: #6c757d;
+        }
+
+        .uncategorized-section .category-section-title {
+            color: #6c757d;
+        }
+
+        /* 接口移动功能 */
+        .api-item-with-move {
+            position: relative;
+        }
+
+        .api-move-btn {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 4px 8px;
+            cursor: pointer;
+            font-size: 12px;
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+
+        .api-item:hover .api-move-btn {
+            opacity: 1;
+        }
+
+        .api-move-btn:hover {
+            background: #00d4ff;
+        }
+
+        .move-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .move-modal-content {
+            background: linear-gradient(135deg, #1e1e2e, #2d2d44);
+            border-radius: 15px;
+            padding: 30px;
+            width: 90%;
+            max-width: 500px;
+            border: 2px solid #00d4ff;
+            box-shadow: 0 20px 40px rgba(0, 212, 255, 0.3);
+        }
+
+        .move-category-list {
+            max-height: 300px;
+            overflow-y: auto;
+            margin: 20px 0;
+        }
+
+        .move-category-item {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            background: rgba(45, 45, 68, 0.5);
+            border-radius: 6px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-left: 4px solid transparent;
+        }
+
+        .move-category-item:hover {
+            background: rgba(0, 212, 255, 0.2);
+            border-left-color: #00d4ff;
+        }
+
+        .move-category-item.selected {
+            background: rgba(0, 212, 255, 0.3);
+            border-left-color: #00d4ff;
+        }
+
+        /* AI智能导入样式 */
+        .ai-import-section {
+            padding: 20px 0;
+        }
+
+        .ai-model-select {
+            width: 100%;
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid #00d4ff;
+            border-radius: 6px;
+            color: #e0e6ed;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+
+        .ai-model-select:focus {
+            outline: none;
+            box-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+        }
+
+        .ai-api-key {
+            width: 100%;
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid #00d4ff;
+            border-radius: 6px;
+            color: #e0e6ed;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+
+        .ai-api-key:focus {
+            outline: none;
+            box-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+        }
+
+        .ai-input-methods {
+            margin: 20px 0;
+        }
+
+        .ai-method-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #444;
+        }
+
+        .ai-method-tab {
+            padding: 8px 16px;
+            background: transparent;
+            border: none;
+            color: #b0b0b0;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s ease;
+            font-size: 12px;
+        }
+
+        .ai-method-tab.active {
+            color: #00d4ff;
+            border-bottom-color: #00d4ff;
+        }
+
+        .ai-method-tab:hover {
+            color: #00d4ff;
+        }
+
+        .ai-method-content {
+            display: none;
+        }
+
+        .ai-method-content.active {
+            display: block;
+        }
+
+        .ai-description-input {
+            width: 100%;
+            min-height: 200px;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid #444;
+            border-radius: 8px;
+            color: #e0e6ed;
+            font-family: inherit;
+            font-size: 14px;
+            resize: vertical;
+            line-height: 1.5;
+        }
+
+        .ai-description-input:focus {
+            outline: none;
+            border-color: #00d4ff;
+            box-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
+        }
+
+        .ai-options {
+            margin: 20px 0;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            border: 1px solid #444;
+        }
+
+        .ai-options .form-group {
+            margin-bottom: 10px;
+        }
+
+        .ai-options label {
+            display: flex;
+            align-items: center;
+            color: #e0e6ed;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .ai-options input[type="checkbox"] {
+            margin-right: 10px;
+            accent-color: #00d4ff;
+        }
+
+        .ai-generate-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(45deg, #8000ff, #00d4ff);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .ai-generate-btn:hover {
+            background: linear-gradient(45deg, #00d4ff, #8000ff);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(128, 0, 255, 0.3);
+        }
+
+        .ai-generate-btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .ai-loading {
+            display: none;
+        }
+
+        .ai-generate-btn.loading .ai-btn-text {
+            display: none;
+        }
+
+        .ai-generate-btn.loading .ai-loading {
+            display: inline;
+        }
+
+        .ai-progress {
+            margin-top: 15px;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            border-left: 4px solid #00d4ff;
+            display: none;
+        }
+
+        .ai-progress.show {
+            display: block;
+        }
+
+        .ai-progress-text {
+            color: #00d4ff;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+
+        .ai-progress-bar {
+            width: 100%;
+            height: 6px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .ai-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00d4ff, #8000ff);
+            border-radius: 3px;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+                height: auto;
+            }
+            
+            .test-types {
+                flex-direction: column;
+            }
+            
+            .config-section {
+                flex-wrap: wrap;
+            }
+
+            .api-selection-container {
+                grid-template-columns: 1fr;
+            }
+
+            .category-list {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* 滚动条样式 */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, #00d4ff, #8000ff);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(180deg, #8000ff, #00d4ff);
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-animation"></div>
+    
+    <!-- 移动接口模态框 -->
+    <div class="move-modal" id="moveModal" style="display: none;">
+        <div class="move-modal-content">
+            <div class="import-modal-header">
+                <h2 class="import-modal-title">📁 移动接口到分类</h2>
+                <button class="close-btn" onclick="hideMoveModal()">×</button>
+            </div>
+            
+            <div style="margin-bottom: 20px;">
+                <p style="color: #b0b0b0;">选择要移动到的分类：</p>
+                <div style="background: rgba(0, 0, 0, 0.3); padding: 10px; border-radius: 6px; margin-top: 10px;">
+                    <span style="color: #00d4ff; font-weight: bold;" id="moveApiName">接口名称</span>
+                </div>
+            </div>
+            
+            <div class="move-category-list" id="moveCategoryList">
+                <!-- 分类列表将在这里动态生成 -->
+            </div>
+            
+            <div class="import-actions">
+                <button class="btn btn-warning" onclick="hideMoveModal()">取消</button>
+                <button class="btn btn-success" id="confirmMoveBtn" onclick="confirmMoveApi()" disabled>确认移动</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 导入接口文档模态框 -->
+    <div class="import-modal" id="importModal" style="display: none;">
+        <div class="import-modal-content">
+            <div class="import-modal-header">
+                <h2 class="import-modal-title">📥 导入接口文档</h2>
+                <button class="close-btn" onclick="hideImportModal()">×</button>
+            </div>
+            
+            <div class="import-tabs">
+                <button class="import-tab active" onclick="switchImportTab('swagger')">Swagger/OpenAPI</button>
+                <button class="import-tab" onclick="switchImportTab('postman')">Postman Collection</button>
+                <button class="import-tab" onclick="switchImportTab('json')">自定义JSON</button>
+                <button class="import-tab" onclick="switchImportTab('url')">在线文档</button>
+                <button class="import-tab" onclick="switchImportTab('ai')">🤖 AI智能导入</button>
+            </div>
+            
+            <!-- Swagger/OpenAPI 导入 -->
+            <div class="import-content active" id="swagger-content">
+                <div class="file-upload-area" onclick="document.getElementById('swaggerFile').click()" 
+                     ondrop="handleFileDrop(event, 'swagger')" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)">
+                    <div class="upload-icon">📄</div>
+                    <div class="upload-text">点击选择或拖拽 Swagger/OpenAPI 文件</div>
+                    <div class="upload-hint">支持 .json, .yaml, .yml 格式</div>
+                </div>
+                <input type="file" id="swaggerFile" class="file-input" accept=".json,.yaml,.yml" onchange="handleFileSelect(event, 'swagger')">
+            </div>
+            
+            <!-- Postman Collection 导入 -->
+            <div class="import-content" id="postman-content">
+                <div class="file-upload-area" onclick="document.getElementById('postmanFile').click()" 
+                     ondrop="handleFileDrop(event, 'postman')" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)">
+                    <div class="upload-icon">📮</div>
+                    <div class="upload-text">点击选择或拖拽 Postman Collection 文件</div>
+                    <div class="upload-hint">支持 .json 格式的 Postman Collection v2.1</div>
+                </div>
+                <input type="file" id="postmanFile" class="file-input" accept=".json" onchange="handleFileSelect(event, 'postman')">
+            </div>
+            
+            <!-- 自定义JSON 导入 -->
+            <div class="import-content" id="json-content">
+                <div class="form-group">
+                    <label>粘贴或编辑 JSON 格式的接口定义</label>
+                    <textarea class="json-editor" id="jsonEditor" placeholder='请输入JSON格式的接口定义，例如：
+{
+  "apis": [
+    {
+      "method": "GET",
+      "name": "获取用户信息",
+      "url": "/api/user/{id}",
+      "description": "根据用户ID获取用户详细信息"
+    },
+    {
+      "method": "POST", 
+      "name": "创建用户",
+      "url": "/api/user",
+      "description": "创建新用户"
+    }
+  ]
+}'></textarea>
+                </div>
+                <button class="import-btn" onclick="parseJsonContent()">解析JSON</button>
+            </div>
+            
+            <!-- 在线文档 导入 -->
+            <div class="import-content" id="url-content">
+                <div class="form-group">
+                    <label>在线文档URL</label>
+                    <div class="url-input-group">
+                        <input type="url" class="url-input" id="docUrl" placeholder="请输入 Swagger/OpenAPI 文档的在线地址">
+                        <button class="import-btn" onclick="fetchOnlineDoc()">获取文档</button>
+                    </div>
+                </div>
+                <div class="upload-hint">
+                    示例：https://petstore.swagger.io/v2/swagger.json
+                </div>
+            </div>
+            
+            <!-- AI智能导入 -->
+            <div class="import-content" id="ai-content">
+                <div class="ai-import-section">
+                    <div class="form-group">
+                        <label>选择大模型</label>
+                        <select class="ai-model-select" id="aiModelSelect">
+                            <option value="gpt-4">GPT-4 (OpenAI)</option>
+                            <option value="gpt-3.5-turbo">GPT-3.5 Turbo (OpenAI)</option>
+                            <option value="claude-3-sonnet">Claude 3 Sonnet (Anthropic)</option>
+                            <option value="claude-3-haiku">Claude 3 Haiku (Anthropic)</option>
+                            <option value="gemini-pro">Gemini Pro (Google)</option>
+                            <option value="qwen-max">通义千问 Max (阿里云)</option>
+                            <option value="ernie-bot">文心一言 (百度)</option>
+                            <option value="chatglm">ChatGLM (智谱AI)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>API密钥</label>
+                        <input type="password" class="ai-api-key" id="aiApiKey" placeholder="请输入对应模型的API密钥">
+                        <div class="upload-hint">密钥将仅在本次会话中使用，不会被保存</div>
+                    </div>
+                    
+                    <div class="ai-input-methods">
+                        <div class="ai-method-tabs">
+                            <button class="ai-method-tab active" onclick="switchAiMethod('text')">📝 文本描述</button>
+                            <button class="ai-method-tab" onclick="switchAiMethod('file')">📄 文档上传</button>
+                            <button class="ai-method-tab" onclick="switchAiMethod('url')">🔗 在线文档</button>
+                        </div>
+                        
+                        <!-- 文本描述方式 -->
+                        <div class="ai-method-content active" id="ai-text-method">
+                            <div class="form-group">
+                                <label>描述您的API需求</label>
+                                <textarea class="ai-description-input" id="aiDescription" placeholder="请详细描述您需要的API接口，例如：
+我需要一个用户管理系统的API，包括：
+1. 用户注册接口 - POST /api/user/register
+2. 用户登录接口 - POST /api/user/login  
+3. 获取用户信息 - GET /api/user/{id}
+4. 更新用户信息 - PUT /api/user/{id}
+5. 删除用户 - DELETE /api/user/{id}
+6. 获取用户列表 - GET /api/users
+
+每个接口需要包含适当的请求参数、响应格式和错误处理。"></textarea>
+                            </div>
+                        </div>
+                        
+                        <!-- 文档上传方式 -->
+                        <div class="ai-method-content" id="ai-file-method">
+                            <div class="file-upload-area" onclick="document.getElementById('aiDocFile').click()" 
+                                 ondrop="handleAiFileDrop(event)" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)">
+                                <div class="upload-icon">🤖</div>
+                                <div class="upload-text">上传API文档让AI分析</div>
+                                <div class="upload-hint">支持 PDF, Word, TXT, MD 等格式</div>
+                            </div>
+                            <input type="file" id="aiDocFile" class="file-input" accept=".pdf,.doc,.docx,.txt,.md" onchange="handleAiFileSelect(event)">
+                        </div>
+                        
+                        <!-- 在线文档方式 -->
+                        <div class="ai-method-content" id="ai-url-method">
+                            <div class="form-group">
+                                <label>在线文档URL</label>
+                                <input type="url" class="url-input" id="aiDocUrl" placeholder="请输入API文档的在线地址">
+                                <div class="upload-hint">AI将自动抓取并分析文档内容</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="ai-options">
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="aiIncludeExamples" checked>
+                                生成示例数据
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="aiIncludeValidation" checked>
+                                包含参数验证
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="aiIncludeErrorHandling" checked>
+                                生成错误处理
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <button class="import-btn ai-generate-btn" onclick="generateApisWithAI()">
+                        <span class="ai-btn-text">🚀 AI生成接口</span>
+                        <span class="ai-loading" style="display: none;">🤖 AI正在分析中...</span>
+                    </button>
+                    
+                    <!-- AI处理进度 -->
+                    <div class="ai-progress" id="aiProgress">
+                        <div class="ai-progress-text" id="aiProgressText">正在初始化AI模型...</div>
+                        <div class="ai-progress-bar">
+                            <div class="ai-progress-fill" id="aiProgressFill"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 预览区域 -->
+            <div class="import-preview" id="importPreview" style="display: none;">
+                <div class="preview-header">
+                    <span>导入预览</span>
+                    <span class="preview-stats" id="previewStats">0 个接口</span>
+                </div>
+                <div class="preview-apis" id="previewApis"></div>
+            </div>
+            
+            <div class="import-actions">
+                <button class="btn btn-warning" onclick="hideImportModal()">取消</button>
+                <button class="btn btn-success" id="confirmImportBtn" onclick="confirmImport()" disabled>确认导入</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="container">
+        <!-- 左侧菜单 -->
+        <div class="sidebar">
+            <div class="logo">
+                <h1>🚀 API测试平台</h1>
+            </div>
+            
+            <div class="menu-section">
+                <div class="menu-title">功能模块</div>
+                
+                <div class="menu-item active" onclick="switchModule('exam')">
+                    📝 考试模块
+                </div>
+                <div class="submenu">
+                    <div class="menu-item" onclick="switchCategory('exam', 'list')">接口列表</div>
+                    <div class="menu-item" onclick="switchCategory('exam', 'normal')">普通测试</div>
+                    <div class="menu-item" onclick="switchCategory('exam', 'sequence')">顺序测试</div>
+                    <div class="menu-item" onclick="switchCategory('exam', 'scenario')">场景测试</div>
+                </div>
+                
+                <div class="menu-item" onclick="switchModule('course')">
+                    📚 课程模块
+                </div>
+                <div class="submenu">
+                    <div class="menu-item" onclick="switchCategory('course', 'list')">接口列表</div>
+                    <div class="menu-item" onclick="switchCategory('course', 'normal')">普通测试</div>
+                    <div class="menu-item" onclick="switchCategory('course', 'sequence')">顺序测试</div>
+                    <div class="menu-item" onclick="switchCategory('course', 'scenario')">场景测试</div>
+                </div>
+                
+                <div class="menu-item" onclick="switchModule('learning')">
+                    🗺️ 学习地图
+                </div>
+                <div class="submenu">
+                    <div class="menu-item" onclick="switchCategory('learning', 'list')">接口列表</div>
+                    <div class="menu-item" onclick="switchCategory('learning', 'normal')">普通测试</div>
+                    <div class="menu-item" onclick="switchCategory('learning', 'sequence')">顺序测试</div>
+                    <div class="menu-item" onclick="switchCategory('learning', 'scenario')">场景测试</div>
+                </div>
+                
+                <div class="menu-item" onclick="switchModule('training')">
+                    🎓 培训班
+                </div>
+                <div class="submenu">
+                    <div class="menu-item" onclick="switchCategory('training', 'list')">接口列表</div>
+                    <div class="menu-item" onclick="switchCategory('training', 'normal')">普通测试</div>
+                    <div class="menu-item" onclick="switchCategory('training', 'sequence')">顺序测试</div>
+                    <div class="menu-item" onclick="switchCategory('training', 'scenario')">场景测试</div>
+                </div>
+            </div>
+            
+            <div class="menu-section">
+                <div class="menu-title">系统设置</div>
+                <div class="menu-item" onclick="showSettings()">
+                    ⚙️ 全局配置
+                </div>
+                <div class="menu-item" onclick="showVariables()">
+                    📋 变量管理
+                </div>
+            </div>
+        </div>
+        
+        <!-- 主内容区 -->
+        <div class="main-content">
+            <!-- 顶部工具栏 -->
+            <div class="toolbar">
+                <div class="config-section">
+                    <div class="config-item">
+                        <label>环境:</label>
+                        <select class="config-input" id="environment">
+                            <option value="dev">开发环境</option>
+                            <option value="test">测试环境</option>
+                            <option value="prod">生产环境</option>
+                        </select>
+                    </div>
+                    <div class="config-item">
+                        <label>Host:</label>
+                        <input type="text" class="config-input" id="host" value="https://api.example.com" placeholder="请输入API地址">
+                    </div>
+                    <div class="config-item">
+                        <label>Token:</label>
+                        <input type="text" class="config-input" id="token" placeholder="请输入访问令牌">
+                    </div>
+                    <button class="btn btn-primary" onclick="saveConfig()">保存配置</button>
+                </div>
+            </div>
+            
+            <!-- 内容面板 -->
+            <div class="content-panel" id="contentPanel">
+                <div class="panel-header">
+                    <h2 class="panel-title">考试模块 - 接口列表</h2>
+                    <p class="panel-subtitle">管理和测试考试相关的API接口</p>
+                </div>
+                
+                <!-- 测试类型选择 -->
+                <div class="test-types">
+                    <div class="test-type-card active" onclick="switchTestType('normal')">
+                        <div class="test-type-icon">⚡</div>
+                        <div class="test-type-title">普通测试</div>
+                        <div class="test-type-desc">单个接口快速测试</div>
+                    </div>
+                    <div class="test-type-card" onclick="switchTestType('sequence')">
+                        <div class="test-type-icon">🔄</div>
+                        <div class="test-type-title">顺序测试</div>
+                        <div class="test-type-desc">按顺序执行多个接口</div>
+                    </div>
+                    <div class="test-type-card" onclick="switchTestType('scenario')">
+                        <div class="test-type-icon">🎯</div>
+                        <div class="test-type-title">场景测试</div>
+                        <div class="test-type-desc">复杂业务场景测试</div>
+                    </div>
+                </div>
+                
+                <!-- 接口列表 -->
+                <div class="api-list">
+                    <div class="api-list-header">
+                        <h3 class="api-list-title">考试接口列表</h3>
+                        <button class="btn btn-success" onclick="runAllTests()">批量测试</button>
+                    </div>
+                    
+                    <div class="api-item" onclick="testApi('getExamList')">
+                        <span class="api-method method-get">GET</span>
+                        <div class="api-info">
+                            <div class="api-name">获取考试列表</div>
+                            <div class="api-url">/api/exam/list</div>
+                        </div>
+                        <span class="api-status status-ready">就绪</span>
+                    </div>
+                    
+                    <div class="api-item" onclick="testApi('createExam')">
+                        <span class="api-method method-post">POST</span>
+                        <div class="api-info">
+                            <div class="api-name">创建考试</div>
+                            <div class="api-url">/api/exam/create</div>
+                        </div>
+                        <span class="api-status status-ready">就绪</span>
+                    </div>
+                    
+                    <div class="api-item" onclick="testApi('updateExam')">
+                        <span class="api-method method-put">PUT</span>
+                        <div class="api-info">
+                            <div class="api-name">更新考试信息</div>
+                            <div class="api-url">/api/exam/update/{id}</div>
+                        </div>
+                        <span class="api-status status-ready">就绪</span>
+                    </div>
+                    
+                    <div class="api-item" onclick="testApi('deleteExam')">
+                        <span class="api-method method-delete">DELETE</span>
+                        <div class="api-info">
+                            <div class="api-name">删除考试</div>
+                            <div class="api-url">/api/exam/delete/{id}</div>
+                        </div>
+                        <span class="api-status status-ready">就绪</span>
+                    </div>
+                    
+                    <div class="api-item" onclick="testApi('submitExam')">
+                        <span class="api-method method-post">POST</span>
+                        <div class="api-info">
+                            <div class="api-name">提交考试答案</div>
+                            <div class="api-url">/api/exam/submit</div>
+                        </div>
+                        <span class="api-status status-ready">就绪</span>
+                    </div>
+                    
+                    <div class="api-item" onclick="testApi('getExamResult')">
+                        <span class="api-method method-get">GET</span>
+                        <div class="api-info">
+                            <div class="api-name">获取考试结果</div>
+                            <div class="api-url">/api/exam/result/{id}</div>
+                        </div>
+                        <span class="api-status status-ready">就绪</span>
+                    </div>
+                </div>
+                
+                <!-- 测试结果 -->
+                <div class="test-results">
+                    <div class="result-header">
+                        <h3 class="result-title">测试结果</h3>
+                        <div class="result-stats">
+                            <div class="stat-item">
+                                <div class="stat-number" id="totalTests">0</div>
+                                <div class="stat-label">总测试</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-number" id="passedTests">0</div>
+                                <div class="stat-label">通过</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-number" id="failedTests">0</div>
+                                <div class="stat-label">失败</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-number" id="avgTime">0ms</div>
+                                <div class="stat-label">平均耗时</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="testLog">
+                        <p style="color: #b0b0b0; text-align: center; padding: 20px;">
+                            点击接口开始测试，结果将在这里显示...
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 模块数据
+        const moduleData = {
+            exam: {
+                name: '考试模块',
+                icon: '📝',
+                categories: [
+                    {
+                        id: 'exam_basic',
+                        name: '基础管理',
+                        description: '考试的基本增删改查操作',
+                        color: '#00d4ff'
+                    },
+                    {
+                        id: 'exam_process',
+                        name: '考试流程',
+                        description: '考试答题和结果相关操作',
+                        color: '#28a745'
+                    }
+                ],
+                apis: [
+                    { method: 'GET', name: '获取考试列表', url: '/api/exam/list', categoryId: 'exam_basic' },
+                    { method: 'POST', name: '创建考试', url: '/api/exam/create', categoryId: 'exam_basic' },
+                    { method: 'PUT', name: '更新考试信息', url: '/api/exam/update/{id}', categoryId: 'exam_basic' },
+                    { method: 'DELETE', name: '删除考试', url: '/api/exam/delete/{id}', categoryId: 'exam_basic' },
+                    { method: 'POST', name: '提交考试答案', url: '/api/exam/submit', categoryId: 'exam_process' },
+                    { method: 'GET', name: '获取考试结果', url: '/api/exam/result/{id}', categoryId: 'exam_process' }
+                ]
+            },
+            course: {
+                name: '课程模块',
+                icon: '📚',
+                categories: [
+                    {
+                        id: 'course_manage',
+                        name: '课程管理',
+                        description: '课程的基本管理操作',
+                        color: '#8000ff'
+                    },
+                    {
+                        id: 'course_student',
+                        name: '学员操作',
+                        description: '学员相关的课程操作',
+                        color: '#ffc107'
+                    }
+                ],
+                apis: [
+                    { method: 'GET', name: '获取课程列表', url: '/api/course/list', categoryId: 'course_manage' },
+                    { method: 'POST', name: '创建课程', url: '/api/course/create', categoryId: 'course_manage' },
+                    { method: 'PUT', name: '更新课程信息', url: '/api/course/update/{id}', categoryId: 'course_manage' },
+                    { method: 'DELETE', name: '删除课程', url: '/api/course/delete/{id}', categoryId: 'course_manage' },
+                    { method: 'POST', name: '报名课程', url: '/api/course/enroll', categoryId: 'course_student' },
+                    { method: 'GET', name: '获取课程详情', url: '/api/course/detail/{id}', categoryId: 'course_student' }
+                ]
+            },
+            learning: {
+                name: '学习地图',
+                icon: '🗺️',
+                categories: [
+                    {
+                        id: 'learning_path',
+                        name: '学习路径',
+                        description: '学习路径相关操作',
+                        color: '#ff0080'
+                    },
+                    {
+                        id: 'learning_progress',
+                        name: '学习进度',
+                        description: '学习进度跟踪操作',
+                        color: '#20c997'
+                    }
+                ],
+                apis: [
+                    { method: 'GET', name: '获取学习路径', url: '/api/learning/path', categoryId: 'learning_path' },
+                    { method: 'POST', name: '创建学习计划', url: '/api/learning/plan/create', categoryId: 'learning_path' },
+                    { method: 'PUT', name: '更新学习进度', url: '/api/learning/progress/update', categoryId: 'learning_progress' },
+                    { method: 'GET', name: '获取学习统计', url: '/api/learning/stats', categoryId: 'learning_progress' },
+                    { method: 'POST', name: '完成学习节点', url: '/api/learning/node/complete', categoryId: 'learning_progress' }
+                ]
+            },
+            training: {
+                name: '培训班',
+                icon: '🎓',
+                categories: [
+                    {
+                        id: 'training_manage',
+                        name: '培训管理',
+                        description: '培训班管理操作',
+                        color: '#fd7e14'
+                    },
+                    {
+                        id: 'training_student',
+                        name: '学员管理',
+                        description: '培训班学员相关操作',
+                        color: '#6f42c1'
+                    }
+                ],
+                apis: [
+                    { method: 'GET', name: '获取培训班列表', url: '/api/training/list', categoryId: 'training_manage' },
+                    { method: 'POST', name: '创建培训班', url: '/api/training/create', categoryId: 'training_manage' },
+                    { method: 'PUT', name: '更新培训班信息', url: '/api/training/update/{id}', categoryId: 'training_manage' },
+                    { method: 'DELETE', name: '删除培训班', url: '/api/training/delete/{id}', categoryId: 'training_manage' },
+                    { method: 'POST', name: '报名培训班', url: '/api/training/enroll', categoryId: 'training_student' },
+                    { method: 'GET', name: '获取培训进度', url: '/api/training/progress/{id}', categoryId: 'training_student' }
+                ]
+            }
+        };
+
+        // 全局变量
+        let currentModule = 'exam';
+        let currentCategory = 'list';
+        let currentTestType = 'normal';
+        let selectedApis = []; // 已选择的接口列表
+        let scenarios = []; // 场景列表
+        let currentScenario = null; // 当前编辑的场景
+        let isCreatingScenario = false; // 是否正在创建场景
+        let importedApis = []; // 待导入的接口列表
+        let currentImportType = 'swagger'; // 当前导入类型
+        let showCategoryManager = false; // 是否显示分类管理器
+        let editingCategory = null; // 当前编辑的分类
+        let selectedApiForMove = null; // 选中要移动的接口
+        let testStats = {
+            total: 0,
+            passed: 0,
+            failed: 0,
+            totalTime: 0
+        };
+
+        // 切换模块
+        function switchModule(module) {
+            currentModule = module;
+            currentCategory = 'list';
+            selectedApis = []; // 清空选择
+            updateActiveMenu();
+            renderContent();
+        }
+
+        // 切换分类
+        function switchCategory(module, category) {
+            currentModule = module;
+            currentCategory = category;
+            selectedApis = []; // 清空选择
+            updateActiveMenu();
+            renderContent();
+        }
+
+        // 切换测试类型
+        function switchTestType(type) {
+            currentTestType = type;
+            document.querySelectorAll('.test-type-card').forEach(card => {
+                card.classList.remove('active');
+            });
+            event.target.closest('.test-type-card').classList.add('active');
+        }
+
+        // 更新菜单激活状态
+        function updateActiveMenu() {
+            document.querySelectorAll('.menu-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            // 这里可以添加更复杂的菜单激活逻辑
+        }
+
+        // 渲染内容
+        function renderContent() {
+            const module = moduleData[currentModule];
+            const contentPanel = document.getElementById('contentPanel');
+            
+            let categoryTitle = '';
+            switch(currentCategory) {
+                case 'list': categoryTitle = '接口列表'; break;
+                case 'normal': categoryTitle = '普通测试'; break;
+                case 'sequence': categoryTitle = '顺序测试'; break;
+                case 'scenario': categoryTitle = '场景测试'; break;
+            }
+            
+            // 根据测试类型渲染不同的内容
+            if (currentCategory === 'list') {
+                // 接口列表视图 - 按分类展示
+                const categorizedApiListHtml = renderCategorizedApiList(module);
+                
+                contentPanel.innerHTML = `
+                    <div class="panel-header">
+                        <h2 class="panel-title">${module.icon} ${module.name} - ${categoryTitle}</h2>
+                        <p class="panel-subtitle">管理和测试${module.name}相关的API接口</p>
+                    </div>
+                    
+                    <div class="test-types">
+                        <div class="test-type-card ${currentTestType === 'normal' ? 'active' : ''}" onclick="switchTestType('normal')">
+                            <div class="test-type-icon">⚡</div>
+                            <div class="test-type-title">普通测试</div>
+                            <div class="test-type-desc">单个接口快速测试</div>
+                        </div>
+                        <div class="test-type-card ${currentTestType === 'sequence' ? 'active' : ''}" onclick="switchTestType('sequence')">
+                            <div class="test-type-icon">🔄</div>
+                            <div class="test-type-title">顺序测试</div>
+                            <div class="test-type-desc">按顺序执行多个接口</div>
+                        </div>
+                        <div class="test-type-card ${currentTestType === 'scenario' ? 'active' : ''}" onclick="switchTestType('scenario')">
+                            <div class="test-type-icon">🎯</div>
+                            <div class="test-type-title">场景测试</div>
+                            <div class="test-type-desc">复杂业务场景测试</div>
+                        </div>
+                    </div>
+                    
+                    <!-- 分类管理 -->
+                    <div class="category-manager" style="display: ${showCategoryManager ? 'block' : 'none'}">
+                        <div class="api-list-header">
+                            <h3 class="api-list-title">📂 分类管理</h3>
+                            <div>
+                                <button class="btn btn-warning" onclick="hideCategoryManagerPanel()">关闭</button>
+                                <button class="btn btn-primary" onclick="createNewCategory()">新建分类</button>
+                            </div>
+                        </div>
+                        
+                        ${editingCategory !== null ? renderCategoryEditor() : ''}
+                        
+                        <div class="category-list" id="categoryList">
+                            ${renderCategoryList(module)}
+                        </div>
+                    </div>
+                    
+                    <!-- 分类化的接口列表 -->
+                    <div class="categorized-api-list">
+                        <div class="api-list-header">
+                            <h3 class="api-list-title">${module.name}接口列表</h3>
+                            <div>
+                                <button class="btn btn-primary" onclick="showCategoryManagerPanel()">📂 管理分类</button>
+                                <button class="btn btn-primary" onclick="showImportModal()">📥 导入接口</button>
+                                <button class="btn btn-success" onclick="runAllTests()">批量测试</button>
+                            </div>
+                        </div>
+                        ${categorizedApiListHtml}
+                    </div>
+                    
+                    <div class="test-results">
+                        <div class="result-header">
+                            <h3 class="result-title">测试结果</h3>
+                            <div class="result-stats">
+                                <div class="stat-item">
+                                    <div class="stat-number" id="totalTests">${testStats.total}</div>
+                                    <div class="stat-label">总测试</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-number" id="passedTests">${testStats.passed}</div>
+                                    <div class="stat-label">通过</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-number" id="failedTests">${testStats.failed}</div>
+                                    <div class="stat-label">失败</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-number" id="avgTime">${testStats.total > 0 ? Math.round(testStats.totalTime / testStats.total) : 0}ms</div>
+                                    <div class="stat-label">平均耗时</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="testLog">
+                            <p style="color: #b0b0b0; text-align: center; padding: 20px;">
+                                点击接口开始测试，结果将在这里显示...
+                            </p>
+                        </div>
+                    </div>
+                `;
+            } else if (currentCategory === 'scenario') {
+                // 场景测试视图 - 专门的场景管理界面
+                contentPanel.innerHTML = `
+                    <div class="panel-header">
+                        <h2 class="panel-title">${module.icon} ${module.name} - ${categoryTitle}</h2>
+                        <p class="panel-subtitle">创建和管理复杂的业务场景测试</p>
+                    </div>
+                    
+                    <div class="test-types">
+                        <div class="test-type-card" onclick="switchTestType('normal')">
+                            <div class="test-type-icon">⚡</div>
+                            <div class="test-type-title">普通测试</div>
+                            <div class="test-type-desc">单个接口快速测试</div>
+                        </div>
+                        <div class="test-type-card" onclick="switchTestType('sequence')">
+                            <div class="test-type-icon">🔄</div>
+                            <div class="test-type-title">顺序测试</div>
+                            <div class="test-type-desc">按顺序执行多个接口</div>
+                        </div>
+                        <div class="test-type-card active" onclick="switchTestType('scenario')">
+                            <div class="test-type-icon">🎯</div>
+                            <div class="test-type-title">场景测试</div>
+                            <div class="test-type-desc">复杂业务场景测试</div>
+                        </div>
+                    </div>
+                    
+                    <!-- 场景管理 -->
+                    <div class="scenario-management">
+                        <div class="api-list-header">
+                            <h3 class="api-list-title">🎭 场景管理</h3>
+                            <button class="btn btn-primary" onclick="createNewScenario()">创建场景</button>
+                        </div>
+                        
+                        <div class="scenario-list" id="scenarioList">
+                            ${renderScenarioList()}
+                        </div>
+                    </div>
+                    
+                    <!-- 场景创建器 -->
+                    <div class="scenario-creator" id="scenarioCreator" style="display: ${isCreatingScenario ? 'block' : 'none'}">
+                        <div class="api-list-header">
+                            <h3 class="api-list-title">🛠️ ${currentScenario ? '编辑场景' : '创建场景'}</h3>
+                            <div>
+                                <button class="btn btn-warning" onclick="cancelScenarioEdit()">取消</button>
+                                <button class="btn btn-success" onclick="saveScenario()">保存</button>
+                            </div>
+                        </div>
+                        
+                        <div class="scenario-form">
+                            <div class="form-group">
+                                <label>场景名称</label>
+                                <input type="text" class="form-input" id="scenarioName" placeholder="请输入场景名称" value="${currentScenario ? currentScenario.name : ''}">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>场景描述</label>
+                                <textarea class="form-input form-textarea" id="scenarioDesc" placeholder="请输入场景描述">${currentScenario ? currentScenario.description : ''}</textarea>
+                            </div>
+                            
+                            <div class="api-selection-container">
+                                <!-- 可选接口列表 -->
+                                <div class="available-apis">
+                                    <div class="api-list-header">
+                                        <h3 class="api-list-title">📋 可选接口</h3>
+                                        <button class="btn btn-primary" onclick="selectAllApis()">全选</button>
+                                    </div>
+                                    <div id="availableApisList">
+                                        ${renderAvailableApis(module)}
+                                    </div>
+                                </div>
+                                
+                                <!-- 场景步骤 -->
+                                <div class="selected-apis">
+                                    <div class="api-list-header">
+                                        <h3 class="api-list-title">🎯 场景步骤 <span id="selectedCount">(${selectedApis.length})</span></h3>
+                                        <button class="btn btn-warning" onclick="clearSelected()">清空</button>
+                                    </div>
+                                    <div class="scenario-steps" id="scenarioSteps">
+                                        ${renderScenarioSteps()}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="test-results">
+                        <div class="result-header">
+                            <h3 class="result-title">测试结果</h3>
+                            <div class="result-stats">
+                                <div class="stat-item">
+                                    <div class="stat-number" id="totalTests">${testStats.total}</div>
+                                    <div class="stat-label">总测试</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-number" id="passedTests">${testStats.passed}</div>
+                                    <div class="stat-label">通过</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-number" id="failedTests">${testStats.failed}</div>
+                                    <div class="stat-label">失败</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-number" id="avgTime">${testStats.total > 0 ? Math.round(testStats.totalTime / testStats.total) : 0}ms</div>
+                                    <div class="stat-label">平均耗时</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="testLog">
+                            <p style="color: #b0b0b0; text-align: center; padding: 20px;">
+                                创建场景并运行测试，结果将在这里显示...
+                            </p>
+                        </div>
+                    </div>
+                `;
+            } else {
+                // 普通测试和顺序测试视图 - 带接口选择功能
+                contentPanel.innerHTML = `
+                    <div class="panel-header">
+                        <h2 class="panel-title">${module.icon} ${module.name} - ${categoryTitle}</h2>
+                        <p class="panel-subtitle">选择接口进行${categoryTitle}</p>
+                    </div>
+                    
+                    <div class="test-types">
+                        <div class="test-type-card ${currentTestType === 'normal' ? 'active' : ''}" onclick="switchTestType('normal')">
+                            <div class="test-type-icon">⚡</div>
+                            <div class="test-type-title">普通测试</div>
+                            <div class="test-type-desc">单个接口快速测试</div>
+                        </div>
+                        <div class="test-type-card ${currentTestType === 'sequence' ? 'active' : ''}" onclick="switchTestType('sequence')">
+                            <div class="test-type-icon">🔄</div>
+                            <div class="test-type-title">顺序测试</div>
+                            <div class="test-type-desc">按顺序执行多个接口</div>
+                        </div>
+                        <div class="test-type-card" onclick="switchTestType('scenario')">
+                            <div class="test-type-icon">🎯</div>
+                            <div class="test-type-title">场景测试</div>
+                            <div class="test-type-desc">复杂业务场景测试</div>
+                        </div>
+                    </div>
+                    
+                    <div class="api-selection-container">
+                        <!-- 可选接口列表 -->
+                        <div class="available-apis">
+                            <div class="api-list-header">
+                                <h3 class="api-list-title">📋 可选接口</h3>
+                                <button class="btn btn-primary" onclick="selectAllApis()">全选</button>
+                            </div>
+                            <div id="availableApisList">
+                                ${renderAvailableApis(module)}
+                            </div>
+                        </div>
+                        
+                        <!-- 已选择的测试接口 -->
+                        <div class="selected-apis">
+                            <div class="api-list-header">
+                                <h3 class="api-list-title">✅ 测试列表 <span id="selectedCount">(${selectedApis.length})</span></h3>
+                                <div>
+                                    <button class="btn btn-warning" onclick="clearSelected()">清空</button>
+                                    <button class="btn btn-success" onclick="runSelectedTests()">开始测试</button>
+                                </div>
+                            </div>
+                            <div id="selectedApisList">
+                                ${renderSelectedApis()}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="test-results">
+                        <div class="result-header">
+                            <h3 class="result-title">测试结果</h3>
+                            <div class="result-stats">
+                                <div class="stat-item">
+                                    <div class="stat-number" id="totalTests">${testStats.total}</div>
+                                    <div class="stat-label">总测试</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-number" id="passedTests">${testStats.passed}</div>
+                                    <div class="stat-label">通过</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-number" id="failedTests">${testStats.failed}</div>
+                                    <div class="stat-label">失败</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-number" id="avgTime">${testStats.total > 0 ? Math.round(testStats.totalTime / testStats.total) : 0}ms</div>
+                                    <div class="stat-label">平均耗时</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="testLog">
+                            <p style="color: #b0b0b0; text-align: center; padding: 20px;">
+                                选择接口开始测试，结果将在这里显示...
+                            </p>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        // 渲染可选接口列表
+        function renderAvailableApis(module) {
+            const categories = module.categories || [];
+            const apis = module.apis || [];
+            
+            let html = '';
+            
+            // 按分类分组显示
+            categories.forEach(category => {
+                const categoryApis = apis.filter(api => api.categoryId === category.id);
+                if (categoryApis.length > 0) {
+                    html += `
+                        <div class="category-section" style="--category-color: ${category.color}; margin-bottom: 10px;">
+                            <div class="category-section-header" onclick="toggleCategorySection('available_${category.id}')">
+                                <div class="category-section-title">
+                                    <div class="category-color" style="background-color: ${category.color}"></div>
+                                    ${category.name} (${categoryApis.length})
+                                </div>
+                                <div class="category-section-toggle">▼</div>
+                            </div>
+                            <div class="category-section-content">
+                                ${categoryApis.map((api, index) => {
+                                    const apiId = `${category.id}_${index}`;
+                                    const isSelected = selectedApis.some(selected => selected.id === apiId);
+                                    return `
+                                        <div class="api-item-selectable ${isSelected ? 'selected' : ''}" onclick="toggleApiSelection('${apiId}')">
+                                            <div class="api-checkbox ${isSelected ? 'checked' : ''}" id="checkbox_${apiId}"></div>
+                                            <span class="api-method method-${api.method.toLowerCase()}">${api.method}</span>
+                                            <div class="api-info">
+                                                <div class="api-name">${api.name}</div>
+                                                <div class="api-url">${api.url}</div>
+                                            </div>
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+            });
+            
+            // 未分类的接口
+            const uncategorizedApis = apis.filter(api => !api.categoryId || !categories.find(cat => cat.id === api.categoryId));
+            if (uncategorizedApis.length > 0) {
+                html += `
+                    <div class="category-section uncategorized-section" style="margin-bottom: 10px;">
+                        <div class="category-section-header" onclick="toggleCategorySection('available_uncategorized')">
+                            <div class="category-section-title">
+                                <div class="category-color" style="background-color: #6c757d"></div>
+                                未分类 (${uncategorizedApis.length})
+                            </div>
+                            <div class="category-section-toggle">▼</div>
+                        </div>
+                        <div class="category-section-content">
+                            ${uncategorizedApis.map((api, index) => {
+                                const apiId = `uncategorized_${index}`;
+                                const isSelected = selectedApis.some(selected => selected.id === apiId);
+                                return `
+                                    <div class="api-item-selectable ${isSelected ? 'selected' : ''}" onclick="toggleApiSelection('${apiId}')">
+                                        <div class="api-checkbox ${isSelected ? 'checked' : ''}" id="checkbox_${apiId}"></div>
+                                        <span class="api-method method-${api.method.toLowerCase()}">${api.method}</span>
+                                        <div class="api-info">
+                                            <div class="api-name">${api.name}</div>
+                                            <div class="api-url">${api.url}</div>
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            return html || '<div class="empty-state"><p>暂无接口，点击"导入接口"开始添加</p></div>';
+        }
+
+        // 渲染已选择的接口列表
+        function renderSelectedApis() {
+            if (selectedApis.length === 0) {
+                return '<div class="empty-state"><p>请从左侧选择要测试的接口</p></div>';
+            }
+            
+            return selectedApis.map((api, index) => `
+                <div class="selected-api-item" data-api-id="${api.id}">
+                    <div class="drag-handle">⋮⋮</div>
+                    <span class="api-method method-${api.method.toLowerCase()}">${api.method}</span>
+                    <div class="api-info">
+                        <div class="api-name">${api.name}</div>
+                        <div class="api-url">${api.url}</div>
+                    </div>
+                    <div class="order-controls">
+                        <button class="order-btn" onclick="moveApiUp(${index})" ${index === 0 ? 'disabled' : ''}>↑</button>
+                        <button class="order-btn" onclick="moveApiDown(${index})" ${index === selectedApis.length - 1 ? 'disabled' : ''}>↓</button>
+                    </div>
+                    <button class="remove-btn" onclick="removeSelectedApi('${api.id}')">移除</button>
+                    <span class="api-status status-ready" id="status_${api.id}">就绪</span>
+                </div>
+            `).join('');
+        }
+
+        // 渲染场景列表
+        function renderScenarioList() {
+            if (scenarios.length === 0) {
+                return '<div class="empty-state"><p>暂无场景，点击"创建场景"开始创建</p></div>';
+            }
+            
+            return scenarios.map(scenario => `
+                <div class="scenario-card ${currentScenario && currentScenario.id === scenario.id ? 'active' : ''}" onclick="selectScenario('${scenario.id}')">
+                    <div class="scenario-header">
+                        <div class="scenario-name">${scenario.name}</div>
+                        <div class="scenario-actions">
+                            <button class="scenario-btn edit" onclick="editScenario('${scenario.id}', event)">编辑</button>
+                            <button class="scenario-btn run" onclick="runScenario('${scenario.id}', event)">运行</button>
+                            <button class="scenario-btn delete" onclick="deleteScenario('${scenario.id}', event)">删除</button>
+                        </div>
+                    </div>
+                    <div class="scenario-info">
+                        ${scenario.description || '无描述'} • ${scenario.steps.length} 个步骤 • 创建于 ${new Date(scenario.createdAt).toLocaleDateString()}
+                    </div>
+                    <div class="scenario-apis">
+                        ${scenario.steps.map(step => `<span class="scenario-api-tag">${step.method} ${step.name}</span>`).join('')}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 渲染场景步骤
+        function renderScenarioSteps() {
+            if (selectedApis.length === 0) {
+                return '<div class="empty-state"><p>请从左侧选择接口来构建场景步骤</p></div>';
+            }
+            
+            return selectedApis.map((api, index) => `
+                <div class="scenario-step" data-step-index="${index}">
+                    <div class="step-number">${index + 1}</div>
+                    <div class="step-content">
+                        <div class="step-api">
+                            <span class="api-method method-${api.method.toLowerCase()}">${api.method}</span>
+                            ${api.name}
+                        </div>
+                        <div class="step-params">
+                            ${api.url}
+                            ${api.paramMappings ? ` • ${api.paramMappings.length} 个参数映射` : ''}
+                        </div>
+                    </div>
+                    <div class="step-actions">
+                        <button class="step-btn" onclick="configStepParams(${index})">配置参数</button>
+                        <button class="step-btn" onclick="moveApiUp(${index})" ${index === 0 ? 'disabled' : ''}>上移</button>
+                        <button class="step-btn" onclick="moveApiDown(${index})" ${index === selectedApis.length - 1 ? 'disabled' : ''}>下移</button>
+                        <button class="step-btn" onclick="removeSelectedApi('${api.id}')">移除</button>
+                    </div>
+                </div>
+                ${api.showParamConfig ? renderParamConfig(index) : ''}
+            `).join('');
+        }
+
+        // 渲染参数配置
+        function renderParamConfig(stepIndex) {
+            const api = selectedApis[stepIndex];
+            const paramMappings = api.paramMappings || [];
+            
+            return `
+                <div class="param-config" id="paramConfig_${stepIndex}">
+                    <div class="param-config-header">
+                        <div class="param-config-title">步骤 ${stepIndex + 1} - 参数配置</div>
+                        <button class="step-btn" onclick="hideParamConfig(${stepIndex})">收起</button>
+                    </div>
+                    
+                    <div class="param-mapping">
+                        ${paramMappings.map((mapping, mappingIndex) => `
+                            <div class="param-row">
+                                <select class="param-select" onchange="updateParamMapping(${stepIndex}, ${mappingIndex}, 'source', this.value)">
+                                    <option value="">选择来源参数</option>
+                                    ${getSourceParams(stepIndex).map(param => 
+                                        `<option value="${param.value}" ${mapping.source === param.value ? 'selected' : ''}>${param.label}</option>`
+                                    ).join('')}
+                                </select>
+                                <div class="param-arrow">→</div>
+                                <select class="param-select" onchange="updateParamMapping(${stepIndex}, ${mappingIndex}, 'target', this.value)">
+                                    <option value="">选择目标参数</option>
+                                    ${getTargetParams(api).map(param => 
+                                        `<option value="${param.value}" ${mapping.target === param.value ? 'selected' : ''}>${param.label}</option>`
+                                    ).join('')}
+                                </select>
+                                <button class="remove-param-btn" onclick="removeParamMapping(${stepIndex}, ${mappingIndex})">删除</button>
+                            </div>
+                        `).join('')}
+                    </div>
+                    
+                    <button class="add-param-btn" onclick="addParamMapping(${stepIndex})">添加参数映射</button>
+                </div>
+            `;
+        }
+
+        // 测试API
+        function testApi(apiName) {
+            const apiItem = event.target.closest('.api-item');
+            const statusElement = apiItem.querySelector('.api-status');
+            const testLog = document.getElementById('testLog');
+            
+            // 更新状态为测试中
+            statusElement.textContent = '测试中';
+            statusElement.className = 'api-status status-testing';
+            
+            // 模拟API测试
+            const startTime = Date.now();
+            setTimeout(() => {
+                const endTime = Date.now();
+                const duration = endTime - startTime;
+                const success = Math.random() > 0.2; // 80% 成功率
+                
+                // 更新统计
+                testStats.total++;
+                testStats.totalTime += duration;
+                if (success) {
+                    testStats.passed++;
+                    statusElement.textContent = '成功';
+                    statusElement.className = 'api-status status-success';
+                } else {
+                    testStats.failed++;
+                    statusElement.textContent = '失败';
+                    statusElement.className = 'api-status status-failed';
+                }
+                
+                // 更新统计显示
+                updateStats();
+                
+                // 添加测试日志
+                const logEntry = document.createElement('div');
+                logEntry.style.cssText = `
+                    padding: 10px;
+                    margin: 5px 0;
+                    background: ${success ? 'rgba(40, 167, 69, 0.2)' : 'rgba(220, 53, 69, 0.2)'};
+                    border-left: 4px solid ${success ? '#28a745' : '#dc3545'};
+                    border-radius: 4px;
+                    font-family: 'Courier New', monospace;
+                    font-size: 14px;
+                `;
+                logEntry.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span>${success ? '✅' : '❌'} ${apiName}</span>
+                        <span style="color: #b0b0b0;">${duration}ms</span>
+                    </div>
+                    <div style="font-size: 12px; color: #b0b0b0; margin-top: 5px;">
+                        ${new Date().toLocaleTimeString()} - ${success ? '测试通过' : '测试失败'}
+                    </div>
+                `;
+                
+                if (testLog.children.length === 1 && testLog.children[0].tagName === 'P') {
+                    testLog.innerHTML = '';
+                }
+                testLog.appendChild(logEntry);
+                testLog.scrollTop = testLog.scrollHeight;
+                
+            }, Math.random() * 2000 + 500); // 0.5-2.5秒随机延迟
+        }
+
+        // 更新统计信息
+        function updateStats() {
+            document.getElementById('totalTests').textContent = testStats.total;
+            document.getElementById('passedTests').textContent = testStats.passed;
+            document.getElementById('failedTests').textContent = testStats.failed;
+            document.getElementById('avgTime').textContent = 
+                testStats.total > 0 ? Math.round(testStats.totalTime / testStats.total) + 'ms' : '0ms';
+        }
+
+        // 批量测试
+        function runAllTests() {
+            const apiItems = document.querySelectorAll('.api-item');
+            apiItems.forEach((item, index) => {
+                setTimeout(() => {
+                    item.click();
+                }, index * 1000); // 每秒执行一个
+            });
+        }
+
+        // 保存配置
+        function saveConfig() {
+            const environment = document.getElementById('environment').value;
+            const host = document.getElementById('host').value;
+            const token = document.getElementById('token').value;
+            
+            // 这里可以添加保存配置的逻辑
+            alert(`配置已保存！\n环境: ${environment}\nHost: ${host}\nToken: ${token ? '已设置' : '未设置'}`);
+        }
+
+        // 显示设置
+        function showSettings() {
+            alert('全局配置功能开发中...');
+        }
+
+        // 显示变量管理
+        function showVariables() {
+            alert('变量管理功能开发中...');
+        }
+
+        // 切换接口选择状态
+        function toggleApiSelection(apiId) {
+            const api = findApiById(apiId);
+            
+            if (!api) {
+                alert('接口不存在！');
+                return;
+            }
+            
+            const existingIndex = selectedApis.findIndex(selected => selected.id === apiId);
+            
+            if (existingIndex >= 0) {
+                // 取消选择
+                selectedApis.splice(existingIndex, 1);
+            } else {
+                // 添加选择
+                selectedApis.push({
+                    id: apiId,
+                    module: currentModule,
+                    method: api.method,
+                    name: api.name,
+                    url: api.url,
+                    categoryId: api.categoryId
+                });
+            }
+            
+            // 重新渲染
+            updateApiSelection();
+        }
+
+        // 更新接口选择显示
+        function updateApiSelection() {
+            const availableList = document.getElementById('availableApisList');
+            const selectedList = document.getElementById('selectedApisList');
+            const selectedCount = document.getElementById('selectedCount');
+            
+            if (availableList) {
+                availableList.innerHTML = renderAvailableApis(moduleData[currentModule]);
+            }
+            if (selectedList) {
+                selectedList.innerHTML = renderSelectedApis();
+            }
+            if (selectedCount) {
+                selectedCount.textContent = `(${selectedApis.length})`;
+            }
+        }
+
+        // 全选接口
+        function selectAllApis() {
+            const module = moduleData[currentModule];
+            const categories = module.categories || [];
+            const apis = module.apis || [];
+            
+            selectedApis = [];
+            
+            // 添加分类中的接口
+            categories.forEach(category => {
+                const categoryApis = apis.filter(api => api.categoryId === category.id);
+                categoryApis.forEach((api, index) => {
+                    selectedApis.push({
+                        id: `${category.id}_${index}`,
+                        module: currentModule,
+                        method: api.method,
+                        name: api.name,
+                        url: api.url,
+                        categoryId: api.categoryId
+                    });
+                });
+            });
+            
+            // 添加未分类的接口
+            const uncategorizedApis = apis.filter(api => !api.categoryId || !categories.find(cat => cat.id === api.categoryId));
+            uncategorizedApis.forEach((api, index) => {
+                selectedApis.push({
+                    id: `uncategorized_${index}`,
+                    module: currentModule,
+                    method: api.method,
+                    name: api.name,
+                    url: api.url,
+                    categoryId: api.categoryId
+                });
+            });
+            
+            updateApiSelection();
+        }
+
+        // 清空选择
+        function clearSelected() {
+            selectedApis = [];
+            updateApiSelection();
+        }
+
+        // 移除单个选择的接口
+        function removeSelectedApi(apiId) {
+            const index = selectedApis.findIndex(api => api.id === apiId);
+            if (index >= 0) {
+                selectedApis.splice(index, 1);
+                updateApiSelection();
+            }
+        }
+
+        // 上移接口
+        function moveApiUp(index) {
+            if (index > 0) {
+                const temp = selectedApis[index];
+                selectedApis[index] = selectedApis[index - 1];
+                selectedApis[index - 1] = temp;
+                updateApiSelection();
+            }
+        }
+
+        // 下移接口
+        function moveApiDown(index) {
+            if (index < selectedApis.length - 1) {
+                const temp = selectedApis[index];
+                selectedApis[index] = selectedApis[index + 1];
+                selectedApis[index + 1] = temp;
+                updateApiSelection();
+            }
+        }
+
+        // 运行选择的测试
+        function runSelectedTests() {
+            if (selectedApis.length === 0) {
+                alert('请先选择要测试的接口！');
+                return;
+            }
+
+            const testLog = document.getElementById('testLog');
+            testLog.innerHTML = '<p style="color: #00d4ff; text-align: center; padding: 10px;">开始执行测试...</p>';
+
+            if (currentTestType === 'sequence') {
+                // 顺序测试 - 一个接一个执行
+                runSequenceTests();
+            } else if (currentTestType === 'scenario') {
+                // 场景测试 - 带参数传递
+                runScenarioTests();
+            } else {
+                // 普通测试 - 并行执行
+                runParallelTests();
+            }
+        }
+
+        // 顺序测试
+        function runSequenceTests() {
+            let currentIndex = 0;
+            
+            function runNext() {
+                if (currentIndex >= selectedApis.length) {
+                    addTestLog('✅ 顺序测试完成！', 'success');
+                    return;
+                }
+                
+                const api = selectedApis[currentIndex];
+                addTestLog(`🔄 正在测试: ${api.name}`, 'info');
+                
+                testSelectedApi(api, () => {
+                    currentIndex++;
+                    setTimeout(runNext, 1000); // 间隔1秒执行下一个
+                });
+            }
+            
+            runNext();
+        }
+
+        // 场景测试
+        function runScenarioTests() {
+            addTestLog('🎯 开始场景测试 - 智能参数传递', 'info');
+            let scenarioData = {}; // 存储场景数据
+            
+            selectedApis.forEach((api, index) => {
+                setTimeout(() => {
+                    addTestLog(`📋 场景步骤 ${index + 1}: ${api.name}`, 'info');
+                    
+                    // 处理参数映射
+                    if (api.paramMappings && api.paramMappings.length > 0) {
+                        const mappingInfo = api.paramMappings.map(mapping => 
+                            `${mapping.source} → ${mapping.target}`
+                        ).join(', ');
+                        addTestLog(`🔗 参数映射: ${mappingInfo}`, 'info');
+                        
+                        // 模拟参数替换
+                        api.paramMappings.forEach(mapping => {
+                            if (mapping.source && mapping.target) {
+                                const sourceValue = getParameterValue(mapping.source, scenarioData, index);
+                                addTestLog(`📝 ${mapping.target} = ${sourceValue}`, 'info');
+                            }
+                        });
+                    }
+                    
+                    testSelectedApi(api, (result) => {
+                        // 模拟保存返回数据供下一步使用
+                        scenarioData[`step${index + 1}`] = {
+                            response: {
+                                id: Math.floor(Math.random() * 1000),
+                                data: `mock_data_${index + 1}`,
+                                status: result ? 200 : 500,
+                                timestamp: Date.now()
+                            },
+                            result: result
+                        };
+                        
+                        addTestLog(`💾 步骤${index + 1}返回数据已保存`, 'info');
+                        
+                        if (index === selectedApis.length - 1) {
+                            addTestLog('🎯 场景测试完成！', 'success');
+                            addTestLog(`📊 场景数据: ${JSON.stringify(scenarioData, null, 2)}`, 'info');
+                        }
+                    });
+                }, index * 1500); // 间隔1.5秒
+            });
+        }
+
+        // 获取参数值
+        function getParameterValue(paramPath, scenarioData, currentStep) {
+            if (paramPath.startsWith('global.')) {
+                // 全局参数
+                const globalKey = paramPath.split('.')[1];
+                switch(globalKey) {
+                    case 'host': return document.getElementById('host').value || 'https://api.example.com';
+                    case 'token': return document.getElementById('token').value || 'mock_token_123';
+                    case 'userId': return 'user_' + Math.floor(Math.random() * 1000);
+                    default: return 'global_value';
+                }
+            } else if (paramPath.startsWith('step')) {
+                // 前面步骤的返回值
+                const stepMatch = paramPath.match(/step(\d+)\.(.+)/);
+                if (stepMatch) {
+                    const stepNum = parseInt(stepMatch[1]);
+                    const valuePath = stepMatch[2];
+                    const stepData = scenarioData[`step${stepNum}`];
+                    
+                    if (stepData) {
+                        // 简单的路径解析
+                        const pathParts = valuePath.split('.');
+                        let value = stepData;
+                        for (const part of pathParts) {
+                            value = value[part];
+                            if (value === undefined) break;
+                        }
+                        return value || `mock_${valuePath}_${stepNum}`;
+                    }
+                }
+                return `mock_step_value_${currentStep}`;
+            }
+            return 'unknown_value';
+        }
+
+        // 并行测试
+        function runParallelTests() {
+            addTestLog('⚡ 开始并行测试', 'info');
+            selectedApis.forEach(api => {
+                testSelectedApi(api);
+            });
+        }
+
+        // 测试选择的API
+        function testSelectedApi(api, callback) {
+            const statusElement = document.getElementById(`status_${api.id}`);
+            if (statusElement) {
+                statusElement.textContent = '测试中';
+                statusElement.className = 'api-status status-testing';
+            }
+            
+            const startTime = Date.now();
+            setTimeout(() => {
+                const endTime = Date.now();
+                const duration = endTime - startTime;
+                const success = Math.random() > 0.2; // 80% 成功率
+                
+                // 更新统计
+                testStats.total++;
+                testStats.totalTime += duration;
+                if (success) {
+                    testStats.passed++;
+                    if (statusElement) {
+                        statusElement.textContent = '成功';
+                        statusElement.className = 'api-status status-success';
+                    }
+                } else {
+                    testStats.failed++;
+                    if (statusElement) {
+                        statusElement.textContent = '失败';
+                        statusElement.className = 'api-status status-failed';
+                    }
+                }
+                
+                // 更新统计显示
+                updateStats();
+                
+                // 添加测试日志
+                addTestLog(
+                    `${success ? '✅' : '❌'} ${api.name} - ${duration}ms`,
+                    success ? 'success' : 'error'
+                );
+                
+                if (callback) callback(success);
+                
+            }, Math.random() * 2000 + 500); // 0.5-2.5秒随机延迟
+        }
+
+        // 添加测试日志
+        function addTestLog(message, type = 'info') {
+            const testLog = document.getElementById('testLog');
+            if (!testLog) return;
+            
+            const logEntry = document.createElement('div');
+            let bgColor, borderColor;
+            
+            switch(type) {
+                case 'success':
+                    bgColor = 'rgba(40, 167, 69, 0.2)';
+                    borderColor = '#28a745';
+                    break;
+                case 'error':
+                    bgColor = 'rgba(220, 53, 69, 0.2)';
+                    borderColor = '#dc3545';
+                    break;
+                case 'info':
+                    bgColor = 'rgba(0, 212, 255, 0.2)';
+                    borderColor = '#00d4ff';
+                    break;
+                default:
+                    bgColor = 'rgba(108, 117, 125, 0.2)';
+                    borderColor = '#6c757d';
+            }
+            
+            logEntry.style.cssText = `
+                padding: 10px;
+                margin: 5px 0;
+                background: ${bgColor};
+                border-left: 4px solid ${borderColor};
+                border-radius: 4px;
+                font-family: 'Courier New', monospace;
+                font-size: 14px;
+            `;
+            logEntry.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span>${message}</span>
+                    <span style="color: #b0b0b0; font-size: 12px;">${new Date().toLocaleTimeString()}</span>
+                </div>
+            `;
+            
+            if (testLog.children.length === 1 && testLog.children[0].tagName === 'P') {
+                testLog.innerHTML = '';
+            }
+            testLog.appendChild(logEntry);
+            testLog.scrollTop = testLog.scrollHeight;
+        }
+
+        // 场景管理函数
+        
+        // 创建新场景
+        function createNewScenario() {
+            isCreatingScenario = true;
+            currentScenario = null;
+            selectedApis = [];
+            renderContent();
+        }
+
+        // 编辑场景
+        function editScenario(scenarioId, event) {
+            event.stopPropagation();
+            const scenario = scenarios.find(s => s.id === scenarioId);
+            if (scenario) {
+                currentScenario = scenario;
+                isCreatingScenario = true;
+                selectedApis = [...scenario.steps];
+                renderContent();
+            }
+        }
+
+        // 选择场景
+        function selectScenario(scenarioId) {
+            const scenario = scenarios.find(s => s.id === scenarioId);
+            if (scenario) {
+                currentScenario = scenario;
+                updateScenarioList();
+            }
+        }
+
+        // 删除场景
+        function deleteScenario(scenarioId, event) {
+            event.stopPropagation();
+            if (confirm('确定要删除这个场景吗？')) {
+                scenarios = scenarios.filter(s => s.id !== scenarioId);
+                if (currentScenario && currentScenario.id === scenarioId) {
+                    currentScenario = null;
+                }
+                updateScenarioList();
+            }
+        }
+
+        // 运行场景
+        function runScenario(scenarioId, event) {
+            event.stopPropagation();
+            const scenario = scenarios.find(s => s.id === scenarioId);
+            if (scenario) {
+                selectedApis = [...scenario.steps];
+                runScenarioTests();
+            }
+        }
+
+        // 保存场景
+        function saveScenario() {
+            const name = document.getElementById('scenarioName').value.trim();
+            const description = document.getElementById('scenarioDesc').value.trim();
+            
+            if (!name) {
+                alert('请输入场景名称！');
+                return;
+            }
+            
+            if (selectedApis.length === 0) {
+                alert('请至少选择一个接口！');
+                return;
+            }
+            
+            const scenario = {
+                id: currentScenario ? currentScenario.id : 'scenario_' + Date.now(),
+                name: name,
+                description: description,
+                steps: selectedApis.map(api => ({...api})),
+                module: currentModule,
+                createdAt: currentScenario ? currentScenario.createdAt : Date.now(),
+                updatedAt: Date.now()
+            };
+            
+            if (currentScenario) {
+                // 更新现有场景
+                const index = scenarios.findIndex(s => s.id === currentScenario.id);
+                scenarios[index] = scenario;
+            } else {
+                // 创建新场景
+                scenarios.push(scenario);
+            }
+            
+            cancelScenarioEdit();
+            alert('场景保存成功！');
+        }
+
+        // 取消场景编辑
+        function cancelScenarioEdit() {
+            isCreatingScenario = false;
+            currentScenario = null;
+            selectedApis = [];
+            renderContent();
+        }
+
+        // 更新场景列表显示
+        function updateScenarioList() {
+            const scenarioList = document.getElementById('scenarioList');
+            if (scenarioList) {
+                scenarioList.innerHTML = renderScenarioList();
+            }
+        }
+
+        // 配置步骤参数
+        function configStepParams(stepIndex) {
+            selectedApis[stepIndex].showParamConfig = !selectedApis[stepIndex].showParamConfig;
+            if (!selectedApis[stepIndex].paramMappings) {
+                selectedApis[stepIndex].paramMappings = [];
+            }
+            updateScenarioSteps();
+        }
+
+        // 隐藏参数配置
+        function hideParamConfig(stepIndex) {
+            selectedApis[stepIndex].showParamConfig = false;
+            updateScenarioSteps();
+        }
+
+        // 更新场景步骤显示
+        function updateScenarioSteps() {
+            const scenarioSteps = document.getElementById('scenarioSteps');
+            if (scenarioSteps) {
+                scenarioSteps.innerHTML = renderScenarioSteps();
+            }
+            updateSelectedCount();
+        }
+
+        // 添加参数映射
+        function addParamMapping(stepIndex) {
+            if (!selectedApis[stepIndex].paramMappings) {
+                selectedApis[stepIndex].paramMappings = [];
+            }
+            selectedApis[stepIndex].paramMappings.push({
+                source: '',
+                target: ''
+            });
+            updateScenarioSteps();
+        }
+
+        // 移除参数映射
+        function removeParamMapping(stepIndex, mappingIndex) {
+            selectedApis[stepIndex].paramMappings.splice(mappingIndex, 1);
+            updateScenarioSteps();
+        }
+
+        // 更新参数映射
+        function updateParamMapping(stepIndex, mappingIndex, field, value) {
+            selectedApis[stepIndex].paramMappings[mappingIndex][field] = value;
+        }
+
+        // 获取来源参数选项
+        function getSourceParams(currentStepIndex) {
+            const params = [];
+            
+            // 添加全局变量
+            params.push(
+                { value: 'global.host', label: '全局 - Host地址' },
+                { value: 'global.token', label: '全局 - Token' },
+                { value: 'global.userId', label: '全局 - 用户ID' }
+            );
+            
+            // 添加前面步骤的返回参数
+            for (let i = 0; i < currentStepIndex; i++) {
+                const step = selectedApis[i];
+                params.push(
+                    { value: `step${i + 1}.response.id`, label: `步骤${i + 1} - 返回ID` },
+                    { value: `step${i + 1}.response.data`, label: `步骤${i + 1} - 返回数据` },
+                    { value: `step${i + 1}.response.status`, label: `步骤${i + 1} - 状态码` }
+                );
+            }
+            
+            return params;
+        }
+
+        // 获取目标参数选项
+        function getTargetParams(api) {
+            const params = [];
+            
+            // 根据接口类型添加常见参数
+            if (api.method === 'GET') {
+                params.push(
+                    { value: 'query.id', label: '查询参数 - ID' },
+                    { value: 'query.page', label: '查询参数 - 页码' },
+                    { value: 'query.size', label: '查询参数 - 页大小' }
+                );
+            } else if (api.method === 'POST' || api.method === 'PUT') {
+                params.push(
+                    { value: 'body.id', label: '请求体 - ID' },
+                    { value: 'body.name', label: '请求体 - 名称' },
+                    { value: 'body.data', label: '请求体 - 数据' }
+                );
+            }
+            
+            // 添加请求头参数
+            params.push(
+                { value: 'headers.Authorization', label: '请求头 - Authorization' },
+                { value: 'headers.Content-Type', label: '请求头 - Content-Type' }
+            );
+            
+            // 添加路径参数
+            if (api.url.includes('{id}')) {
+                params.push({ value: 'path.id', label: '路径参数 - ID' });
+            }
+            
+            return params;
+        }
+
+        // 更新选择计数
+        function updateSelectedCount() {
+            const selectedCount = document.getElementById('selectedCount');
+            if (selectedCount) {
+                selectedCount.textContent = `(${selectedApis.length})`;
+            }
+        }
+
+        // 重写更新接口选择显示函数以支持场景步骤
+        function updateApiSelection() {
+            const availableList = document.getElementById('availableApisList');
+            const selectedList = document.getElementById('selectedApisList');
+            const scenarioSteps = document.getElementById('scenarioSteps');
+            
+            if (availableList) {
+                availableList.innerHTML = renderAvailableApis(moduleData[currentModule]);
+            }
+            if (selectedList) {
+                selectedList.innerHTML = renderSelectedApis();
+            }
+            if (scenarioSteps) {
+                scenarioSteps.innerHTML = renderScenarioSteps();
+            }
+            updateSelectedCount();
+        }
+
+        // 初始化一些示例场景
+        function initSampleScenarios() {
+            scenarios = [
+                {
+                    id: 'scenario_exam_flow',
+                    name: '考试完整流程',
+                    description: '从获取考试列表到提交答案的完整流程测试',
+                    module: 'exam',
+                    steps: [
+                        {
+                            id: 'exam_0',
+                            module: 'exam',
+                            method: 'GET',
+                            name: '获取考试列表',
+                            url: '/api/exam/list',
+                            paramMappings: []
+                        },
+                        {
+                            id: 'exam_1',
+                            module: 'exam',
+                            method: 'POST',
+                            name: '创建考试',
+                            url: '/api/exam/create',
+                            paramMappings: [
+                                { source: 'global.userId', target: 'body.creatorId' }
+                            ]
+                        },
+                        {
+                            id: 'exam_4',
+                            module: 'exam',
+                            method: 'POST',
+                            name: '提交考试答案',
+                            url: '/api/exam/submit',
+                            paramMappings: [
+                                { source: 'step2.response.id', target: 'body.examId' }
+                            ]
+                        }
+                    ],
+                    createdAt: Date.now() - 86400000,
+                    updatedAt: Date.now() - 86400000
+                },
+                {
+                    id: 'scenario_course_management',
+                    name: '课程管理场景',
+                    description: '课程的创建、更新和查询流程',
+                    module: 'course',
+                    steps: [
+                        {
+                            id: 'course_1',
+                            module: 'course',
+                            method: 'POST',
+                            name: '创建课程',
+                            url: '/api/course/create',
+                            paramMappings: []
+                        },
+                        {
+                            id: 'course_2',
+                            module: 'course',
+                            method: 'PUT',
+                            name: '更新课程信息',
+                            url: '/api/course/update/{id}',
+                            paramMappings: [
+                                { source: 'step1.response.id', target: 'path.id' }
+                            ]
+                        }
+                    ],
+                    createdAt: Date.now() - 172800000,
+                    updatedAt: Date.now() - 172800000
+                }
+            ];
+        }
+
+        // 导入接口文档功能
+        
+        // 显示导入模态框
+        function showImportModal() {
+            document.getElementById('importModal').style.display = 'flex';
+            resetImportModal();
+        }
+
+        // 隐藏导入模态框
+        function hideImportModal() {
+            document.getElementById('importModal').style.display = 'none';
+            resetImportModal();
+        }
+
+        // 重置导入模态框
+        function resetImportModal() {
+            importedApis = [];
+            currentImportType = 'swagger';
+            document.getElementById('importPreview').style.display = 'none';
+            document.getElementById('confirmImportBtn').disabled = true;
+            
+            // 重置所有输入
+            document.getElementById('swaggerFile').value = '';
+            document.getElementById('postmanFile').value = '';
+            document.getElementById('jsonEditor').value = '';
+            document.getElementById('docUrl').value = '';
+            
+            // 重置AI相关输入
+            document.getElementById('aiApiKey').value = '';
+            document.getElementById('aiDescription').value = '';
+            document.getElementById('aiDocUrl').value = '';
+            document.getElementById('aiDocFile').value = '';
+            aiDocumentContent = '';
+            hideAiProgress();
+            
+            // 重置标签页
+            switchImportTab('swagger');
+        }
+
+        // 切换导入标签页
+        function switchImportTab(type) {
+            currentImportType = type;
+            
+            // 更新标签页状态
+            document.querySelectorAll('.import-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelector(`[onclick="switchImportTab('${type}')"]`).classList.add('active');
+            
+            // 更新内容区域
+            document.querySelectorAll('.import-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(`${type}-content`).classList.add('active');
+        }
+
+        // 处理文件拖拽
+        function handleDragOver(event) {
+            event.preventDefault();
+            event.currentTarget.classList.add('dragover');
+        }
+
+        function handleDragLeave(event) {
+            event.currentTarget.classList.remove('dragover');
+        }
+
+        function handleFileDrop(event, type) {
+            event.preventDefault();
+            event.currentTarget.classList.remove('dragover');
+            
+            const files = event.dataTransfer.files;
+            if (files.length > 0) {
+                processFile(files[0], type);
+            }
+        }
+
+        // 处理文件选择
+        function handleFileSelect(event, type) {
+            const file = event.target.files[0];
+            if (file) {
+                processFile(file, type);
+            }
+        }
+
+        // 处理文件
+        function processFile(file, type) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const content = e.target.result;
+                    let parsedData;
+                    
+                    if (file.name.endsWith('.yaml') || file.name.endsWith('.yml')) {
+                        // 简单的YAML解析（实际项目中应使用专门的YAML解析库）
+                        alert('YAML格式暂不支持，请转换为JSON格式后重试');
+                        return;
+                    } else {
+                        parsedData = JSON.parse(content);
+                    }
+                    
+                    if (type === 'swagger') {
+                        parseSwaggerDoc(parsedData);
+                    } else if (type === 'postman') {
+                        parsePostmanCollection(parsedData);
+                    }
+                } catch (error) {
+                    alert('文件解析失败：' + error.message);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // 解析Swagger/OpenAPI文档
+        function parseSwaggerDoc(swaggerDoc) {
+            const apis = [];
+            
+            try {
+                const basePath = swaggerDoc.basePath || '';
+                const paths = swaggerDoc.paths || {};
+                
+                Object.keys(paths).forEach(path => {
+                    const pathItem = paths[path];
+                    Object.keys(pathItem).forEach(method => {
+                        if (['get', 'post', 'put', 'delete', 'patch'].includes(method.toLowerCase())) {
+                            const operation = pathItem[method];
+                            apis.push({
+                                method: method.toUpperCase(),
+                                name: operation.summary || operation.operationId || `${method.toUpperCase()} ${path}`,
+                                url: basePath + path,
+                                description: operation.description || '',
+                                tags: operation.tags || []
+                            });
+                        }
+                    });
+                });
+                
+                importedApis = apis;
+                showImportPreview();
+                
+            } catch (error) {
+                alert('Swagger文档解析失败：' + error.message);
+            }
+        }
+
+        // 解析Postman Collection
+        function parsePostmanCollection(collection) {
+            const apis = [];
+            
+            try {
+                function parseItems(items, folderPath = '') {
+                    items.forEach(item => {
+                        if (item.item) {
+                            // 这是一个文件夹
+                            parseItems(item.item, folderPath + item.name + '/');
+                        } else if (item.request) {
+                            // 这是一个请求
+                            const request = item.request;
+                            const url = typeof request.url === 'string' ? request.url : 
+                                       (request.url.raw || request.url.protocol + '://' + request.url.host.join('.') + request.url.path.join('/'));
+                            
+                            apis.push({
+                                method: request.method,
+                                name: item.name,
+                                url: url.replace(/{{.*?}}/g, ''), // 移除Postman变量
+                                description: item.request.description || '',
+                                folder: folderPath
+                            });
+                        }
+                    });
+                }
+                
+                parseItems(collection.item || []);
+                importedApis = apis;
+                showImportPreview();
+                
+            } catch (error) {
+                alert('Postman Collection解析失败：' + error.message);
+            }
+        }
+
+        // 解析JSON内容
+        function parseJsonContent() {
+            const jsonContent = document.getElementById('jsonEditor').value.trim();
+            if (!jsonContent) {
+                alert('请输入JSON内容');
+                return;
+            }
+            
+            try {
+                const data = JSON.parse(jsonContent);
+                
+                if (data.apis && Array.isArray(data.apis)) {
+                    // 自定义格式
+                    importedApis = data.apis.map(api => ({
+                        method: api.method || 'GET',
+                        name: api.name || 'Unnamed API',
+                        url: api.url || '/',
+                        description: api.description || ''
+                    }));
+                } else if (data.paths) {
+                    // Swagger格式
+                    parseSwaggerDoc(data);
+                    return;
+                } else if (data.item) {
+                    // Postman格式
+                    parsePostmanCollection(data);
+                    return;
+                } else {
+                    alert('不支持的JSON格式，请检查数据结构');
+                    return;
+                }
+                
+                showImportPreview();
+                
+            } catch (error) {
+                alert('JSON解析失败：' + error.message);
+            }
+        }
+
+        // 获取在线文档
+        function fetchOnlineDoc() {
+            const url = document.getElementById('docUrl').value.trim();
+            if (!url) {
+                alert('请输入文档URL');
+                return;
+            }
+            
+            // 由于CORS限制，这里只能模拟获取
+            alert('由于浏览器CORS限制，暂不支持直接获取在线文档。请下载文档文件后使用文件导入功能。');
+            
+            // 实际项目中，这里应该通过后端代理来获取在线文档
+            /*
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.swagger || data.openapi) {
+                        parseSwaggerDoc(data);
+                    } else {
+                        alert('不支持的文档格式');
+                    }
+                })
+                .catch(error => {
+                    alert('获取文档失败：' + error.message);
+                });
+            */
+        }
+
+        // 显示导入预览
+        function showImportPreview() {
+            if (importedApis.length === 0) {
+                document.getElementById('importPreview').style.display = 'none';
+                document.getElementById('confirmImportBtn').disabled = true;
+                return;
+            }
+            
+            document.getElementById('importPreview').style.display = 'block';
+            document.getElementById('confirmImportBtn').disabled = false;
+            
+            // 更新统计信息
+            document.getElementById('previewStats').textContent = `${importedApis.length} 个接口`;
+            
+            // 渲染接口列表
+            const previewApis = document.getElementById('previewApis');
+            previewApis.innerHTML = importedApis.map(api => `
+                <div class="preview-api-item">
+                    <span class="preview-method method-${api.method.toLowerCase()}">${api.method}</span>
+                    <div style="flex: 1;">
+                        <div style="font-weight: bold; margin-bottom: 2px;">${api.name}</div>
+                        <div style="color: #b0b0b0; font-size: 10px;">${api.url}</div>
+                        ${api.description ? `<div style="color: #b0b0b0; font-size: 10px; margin-top: 2px;">${api.description}</div>` : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 确认导入
+        function confirmImport() {
+            if (importedApis.length === 0) {
+                alert('没有可导入的接口');
+                return;
+            }
+            
+            // 将导入的接口添加到当前模块
+            const module = moduleData[currentModule];
+            const existingUrls = new Set(module.apis.map(api => api.url));
+            
+            let addedCount = 0;
+            let duplicateCount = 0;
+            
+            importedApis.forEach(api => {
+                if (!existingUrls.has(api.url)) {
+                    module.apis.push({
+                        method: api.method,
+                        name: api.name,
+                        url: api.url,
+                        description: api.description || '',
+                        // 导入的接口默认为未分类，用户可以后续移动
+                        categoryId: null
+                    });
+                    addedCount++;
+                } else {
+                    duplicateCount++;
+                }
+            });
+            
+            hideImportModal();
+            renderContent();
+            
+            let message = `导入完成！成功添加 ${addedCount} 个接口`;
+            if (duplicateCount > 0) {
+                message += `，跳过 ${duplicateCount} 个重复接口`;
+            }
+            message += '\n导入的接口已放入"未分类"，您可以通过"移动"功能将其分配到相应分类。';
+            alert(message);
+        }
+
+        // AI智能导入功能
+        let currentAiMethod = 'text';
+        let aiDocumentContent = '';
+
+        // 切换AI输入方式
+        function switchAiMethod(method) {
+            currentAiMethod = method;
+            
+            // 更新标签页状态
+            document.querySelectorAll('.ai-method-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelector(`[onclick="switchAiMethod('${method}')"]`).classList.add('active');
+            
+            // 更新内容区域
+            document.querySelectorAll('.ai-method-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(`ai-${method}-method`).classList.add('active');
+        }
+
+        // 处理AI文档文件上传
+        function handleAiFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                processAiDocumentFile(file);
+            }
+        }
+
+        // 处理AI文档文件拖拽
+        function handleAiFileDrop(event) {
+            event.preventDefault();
+            event.currentTarget.classList.remove('dragover');
+            
+            const files = event.dataTransfer.files;
+            if (files.length > 0) {
+                processAiDocumentFile(files[0]);
+            }
+        }
+
+        // 处理AI文档文件
+        function processAiDocumentFile(file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                aiDocumentContent = e.target.result;
+                alert(`文档已上传：${file.name} (${(file.size / 1024).toFixed(1)} KB)`);
+            };
+            
+            if (file.type.includes('text') || file.name.endsWith('.md') || file.name.endsWith('.txt')) {
+                reader.readAsText(file);
+            } else {
+                alert('暂不支持该文件格式，请上传文本文件(.txt, .md)或将文档内容复制到文本描述中');
+            }
+        }
+
+        // AI生成接口
+        async function generateApisWithAI() {
+            const model = document.getElementById('aiModelSelect').value;
+            const apiKey = document.getElementById('aiApiKey').value.trim();
+            
+            if (!apiKey) {
+                alert('请输入API密钥');
+                return;
+            }
+            
+            let inputContent = '';
+            
+            // 根据选择的方式获取输入内容
+            switch (currentAiMethod) {
+                case 'text':
+                    inputContent = document.getElementById('aiDescription').value.trim();
+                    if (!inputContent) {
+                        alert('请描述您的API需求');
+                        return;
+                    }
+                    break;
+                case 'file':
+                    if (!aiDocumentContent) {
+                        alert('请先上传文档文件');
+                        return;
+                    }
+                    inputContent = aiDocumentContent;
+                    break;
+                case 'url':
+                    const docUrl = document.getElementById('aiDocUrl').value.trim();
+                    if (!docUrl) {
+                        alert('请输入文档URL');
+                        return;
+                    }
+                    inputContent = `请分析这个URL的API文档：${docUrl}`;
+                    break;
+            }
+            
+            // 获取选项
+            const includeExamples = document.getElementById('aiIncludeExamples').checked;
+            const includeValidation = document.getElementById('aiIncludeValidation').checked;
+            const includeErrorHandling = document.getElementById('aiIncludeErrorHandling').checked;
+            
+            // 显示进度条和加载状态
+            showAiProgress();
+            const generateBtn = document.querySelector('.ai-generate-btn');
+            generateBtn.classList.add('loading');
+            generateBtn.disabled = true;
+            
+            try {
+                // 构建AI提示词
+                const prompt = buildAiPrompt(inputContent, includeExamples, includeValidation, includeErrorHandling);
+                
+                // 调用AI API
+                updateAiProgress(20, '正在连接AI服务...');
+                const aiResponse = await callAiApi(model, apiKey, prompt);
+                
+                updateAiProgress(60, '正在解析AI响应...');
+                const parsedApis = parseAiResponse(aiResponse);
+                
+                updateAiProgress(80, '正在生成接口预览...');
+                
+                if (parsedApis && parsedApis.length > 0) {
+                    importedApis = parsedApis;
+                    showImportPreview();
+                    updateAiProgress(100, 'AI生成完成！');
+                    
+                    setTimeout(() => {
+                        hideAiProgress();
+                    }, 2000);
+                } else {
+                    throw new Error('AI未能生成有效的接口定义');
+                }
+                
+            } catch (error) {
+                console.error('AI生成失败:', error);
+                alert('AI生成失败：' + error.message);
+                hideAiProgress();
+            } finally {
+                generateBtn.classList.remove('loading');
+                generateBtn.disabled = false;
+            }
+        }
+
+        // 构建AI提示词
+        function buildAiPrompt(inputContent, includeExamples, includeValidation, includeErrorHandling) {
+            let prompt = `请根据以下需求生成RESTful API接口定义，返回JSON格式：
+
+输入内容：
+${inputContent}
+
+要求：
+1. 生成标准的RESTful API接口
+2. 包含合适的HTTP方法（GET, POST, PUT, DELETE等）
+3. URL路径要符合RESTful规范
+4. 每个接口要有清晰的名称和描述`;
+
+            if (includeExamples) {
+                prompt += '\n5. 为每个接口提供请求和响应示例';
+            }
+            
+            if (includeValidation) {
+                prompt += '\n6. 包含参数验证规则';
+            }
+            
+            if (includeErrorHandling) {
+                prompt += '\n7. 定义常见的错误响应';
+            }
+
+            prompt += `
+
+请严格按照以下JSON格式返回，不要包含任何其他文本：
+{
+  "apis": [
+    {
+      "method": "GET",
+      "name": "接口名称",
+      "url": "/api/path",
+      "description": "接口描述"
+    }
+  ]
+}`;
+
+            return prompt;
+        }
+
+        // 调用AI API
+        async function callAiApi(model, apiKey, prompt) {
+            // 这里是模拟的AI调用，实际项目中需要根据不同的模型调用相应的API
+            // 由于浏览器的CORS限制，实际项目中应该通过后端代理来调用AI API
+            
+            return new Promise((resolve, reject) => {
+                // 模拟AI处理时间
+                setTimeout(() => {
+                    // 模拟AI响应
+                    const mockResponse = generateMockAiResponse(prompt);
+                    resolve(mockResponse);
+                }, 2000);
+            });
+        }
+
+        // 生成模拟AI响应
+        function generateMockAiResponse(prompt) {
+            // 根据提示词生成模拟的API接口
+            const mockApis = [
+                {
+                    method: "POST",
+                    name: "用户注册",
+                    url: "/api/user/register",
+                    description: "用户注册接口，创建新用户账户"
+                },
+                {
+                    method: "POST",
+                    name: "用户登录",
+                    url: "/api/user/login",
+                    description: "用户登录接口，验证用户凭据并返回访问令牌"
+                },
+                {
+                    method: "GET",
+                    name: "获取用户信息",
+                    url: "/api/user/{id}",
+                    description: "根据用户ID获取用户详细信息"
+                },
+                {
+                    method: "PUT",
+                    name: "更新用户信息",
+                    url: "/api/user/{id}",
+                    description: "更新指定用户的信息"
+                },
+                {
+                    method: "DELETE",
+                    name: "删除用户",
+                    url: "/api/user/{id}",
+                    description: "删除指定的用户账户"
+                },
+                {
+                    method: "GET",
+                    name: "获取用户列表",
+                    url: "/api/users",
+                    description: "获取系统中所有用户的列表，支持分页和筛选"
+                }
+            ];
+            
+            return JSON.stringify({ apis: mockApis });
+        }
+
+        // 解析AI响应
+        function parseAiResponse(response) {
+            try {
+                const data = JSON.parse(response);
+                if (data.apis && Array.isArray(data.apis)) {
+                    return data.apis.map(api => ({
+                        method: api.method || 'GET',
+                        name: api.name || 'Unnamed API',
+                        url: api.url || '/',
+                        description: api.description || ''
+                    }));
+                }
+                throw new Error('AI响应格式不正确');
+            } catch (error) {
+                throw new Error('解析AI响应失败：' + error.message);
+            }
+        }
+
+        // 显示AI进度
+        function showAiProgress() {
+            const progress = document.getElementById('aiProgress');
+            progress.classList.add('show');
+            updateAiProgress(0, '正在初始化...');
+        }
+
+        // 更新AI进度
+        function updateAiProgress(percent, text) {
+            const progressText = document.getElementById('aiProgressText');
+            const progressFill = document.getElementById('aiProgressFill');
+            
+            progressText.textContent = text;
+            progressFill.style.width = percent + '%';
+        }
+
+        // 隐藏AI进度
+        function hideAiProgress() {
+            const progress = document.getElementById('aiProgress');
+            progress.classList.remove('show');
+        }
+
+        // 分类管理函数
+        
+        // 显示分类管理器
+        function showCategoryManagerPanel() {
+            showCategoryManager = true;
+            editingCategory = null;
+            renderContent();
+        }
+
+        // 隐藏分类管理器
+        function hideCategoryManagerPanel() {
+            showCategoryManager = false;
+            editingCategory = null;
+            renderContent();
+        }
+
+        // 渲染分类列表
+        function renderCategoryList(module) {
+            if (!module.categories || module.categories.length === 0) {
+                return '<div class="empty-state"><p>暂无分类，点击"新建分类"开始创建</p></div>';
+            }
+            
+            return module.categories.map(category => {
+                const apiCount = module.apis.filter(api => api.categoryId === category.id).length;
+                return `
+                    <div class="category-card">
+                        <div class="category-header">
+                            <div class="category-name">${category.name}</div>
+                            <div class="category-color" style="background-color: ${category.color}"></div>
+                        </div>
+                        <div class="category-description">${category.description}</div>
+                        <div class="category-stats">${apiCount} 个接口</div>
+                        <div class="category-actions">
+                            <button class="category-btn edit" onclick="editCategory('${category.id}')">编辑</button>
+                            <button class="category-btn delete" onclick="deleteCategory('${category.id}')">删除</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // 渲染分类编辑器
+        function renderCategoryEditor() {
+            const category = editingCategory;
+            const isNew = !category || !category.id;
+            
+            return `
+                <div class="category-editor">
+                    <div class="api-list-header">
+                        <h3 class="api-list-title">${isNew ? '新建分类' : '编辑分类'}</h3>
+                        <button class="btn btn-warning" onclick="cancelCategoryEdit()">取消</button>
+                    </div>
+                    
+                    <div class="scenario-form">
+                        <div class="form-group">
+                            <label>分类名称</label>
+                            <input type="text" class="form-input" id="categoryName" placeholder="请输入分类名称" value="${category ? category.name : ''}">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>分类描述</label>
+                            <textarea class="form-input form-textarea" id="categoryDesc" placeholder="请输入分类描述">${category ? category.description : ''}</textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>分类颜色</label>
+                            <div class="color-picker">
+                                ${['#00d4ff', '#28a745', '#8000ff', '#ffc107', '#ff0080', '#20c997', '#fd7e14', '#6f42c1', '#dc3545', '#6c757d'].map(color => `
+                                    <div class="color-option ${category && category.color === color ? 'selected' : ''}" 
+                                         style="background-color: ${color}" 
+                                         onclick="selectCategoryColor('${color}')"></div>
+                                `).join('')}
+                            </div>
+                        </div>
+                        
+                        <div style="margin-top: 20px;">
+                            <button class="btn btn-success" onclick="saveCategoryEdit()">保存分类</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // 渲染分类化的接口列表
+        function renderCategorizedApiList(module) {
+            const categories = module.categories || [];
+            const apis = module.apis || [];
+            
+            let html = '';
+            
+            // 按分类分组接口
+            categories.forEach(category => {
+                const categoryApis = apis.filter(api => api.categoryId === category.id);
+                if (categoryApis.length > 0) {
+                    html += `
+                        <div class="category-section" style="--category-color: ${category.color}">
+                            <div class="category-section-header" onclick="toggleCategorySection('${category.id}')">
+                                <div class="category-section-title">
+                                    <div class="category-color" style="background-color: ${category.color}"></div>
+                                    ${category.name} (${categoryApis.length})
+                                </div>
+                                <div class="category-section-toggle">▼</div>
+                            </div>
+                            <div class="category-section-content">
+                                ${categoryApis.map((api, index) => renderApiItem(api, `${category.id}_${index}`)).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+            });
+            
+            // 未分类的接口
+            const uncategorizedApis = apis.filter(api => !api.categoryId || !categories.find(cat => cat.id === api.categoryId));
+            if (uncategorizedApis.length > 0) {
+                html += `
+                    <div class="category-section uncategorized-section">
+                        <div class="category-section-header" onclick="toggleCategorySection('uncategorized')">
+                            <div class="category-section-title">
+                                <div class="category-color" style="background-color: #6c757d"></div>
+                                未分类 (${uncategorizedApis.length})
+                            </div>
+                            <div class="category-section-toggle">▼</div>
+                        </div>
+                        <div class="category-section-content">
+                            ${uncategorizedApis.map((api, index) => renderApiItem(api, `uncategorized_${index}`)).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            return html || '<div class="empty-state"><p>暂无接口，点击"导入接口"开始添加</p></div>';
+        }
+
+        // 渲染单个接口项
+        function renderApiItem(api, apiId) {
+            return `
+                <div class="api-item api-item-with-move" onclick="testApi('${api.name}')">
+                    <span class="api-method method-${api.method.toLowerCase()}">${api.method}</span>
+                    <div class="api-info">
+                        <div class="api-name">${api.name}</div>
+                        <div class="api-url">${api.url}</div>
+                    </div>
+                    <button class="api-move-btn" onclick="showMoveModal('${apiId}', event)">移动</button>
+                    <span class="api-status status-ready" id="status_${apiId}">就绪</span>
+                </div>
+            `;
+        }
+
+        // 切换分类区域展开/收起
+        function toggleCategorySection(categoryId) {
+            const section = event.currentTarget.closest('.category-section');
+            section.classList.toggle('collapsed');
+        }
+
+        // 创建新分类
+        function createNewCategory() {
+            editingCategory = {
+                name: '',
+                description: '',
+                color: '#00d4ff'
+            };
+            renderContent();
+        }
+
+        // 编辑分类
+        function editCategory(categoryId) {
+            const module = moduleData[currentModule];
+            const category = module.categories.find(cat => cat.id === categoryId);
+            if (category) {
+                editingCategory = {...category};
+                renderContent();
+            }
+        }
+
+        // 删除分类
+        function deleteCategory(categoryId) {
+            if (confirm('确定要删除这个分类吗？分类下的接口将移动到"未分类"。')) {
+                const module = moduleData[currentModule];
+                
+                // 移除分类
+                module.categories = module.categories.filter(cat => cat.id !== categoryId);
+                
+                // 将该分类下的接口移动到未分类
+                module.apis.forEach(api => {
+                    if (api.categoryId === categoryId) {
+                        delete api.categoryId;
+                    }
+                });
+                
+                renderContent();
+                alert('分类删除成功！');
+            }
+        }
+
+        // 取消分类编辑
+        function cancelCategoryEdit() {
+            editingCategory = null;
+            renderContent();
+        }
+
+        // 选择分类颜色
+        function selectCategoryColor(color) {
+            if (editingCategory) {
+                editingCategory.color = color;
+                // 更新颜色选择器显示
+                document.querySelectorAll('.color-option').forEach(option => {
+                    option.classList.remove('selected');
+                });
+                event.target.classList.add('selected');
+            }
+        }
+
+        // 保存分类编辑
+        function saveCategoryEdit() {
+            const name = document.getElementById('categoryName').value.trim();
+            const description = document.getElementById('categoryDesc').value.trim();
+            
+            if (!name) {
+                alert('请输入分类名称！');
+                return;
+            }
+            
+            const module = moduleData[currentModule];
+            const isNew = !editingCategory.id;
+            
+            if (isNew) {
+                // 创建新分类
+                const newCategory = {
+                    id: `${currentModule}_cat_${Date.now()}`,
+                    name: name,
+                    description: description,
+                    color: editingCategory.color
+                };
+                
+                if (!module.categories) {
+                    module.categories = [];
+                }
+                module.categories.push(newCategory);
+            } else {
+                // 更新现有分类
+                const categoryIndex = module.categories.findIndex(cat => cat.id === editingCategory.id);
+                if (categoryIndex >= 0) {
+                    module.categories[categoryIndex] = {
+                        ...module.categories[categoryIndex],
+                        name: name,
+                        description: description,
+                        color: editingCategory.color
+                    };
+                }
+            }
+            
+            editingCategory = null;
+            renderContent();
+            alert('分类保存成功！');
+        }
+
+        // 显示移动接口模态框
+        function showMoveModal(apiId, event) {
+            event.stopPropagation();
+            
+            const module = moduleData[currentModule];
+            const api = findApiById(apiId);
+            
+            if (!api) {
+                alert('接口不存在！');
+                return;
+            }
+            
+            selectedApiForMove = { apiId, api };
+            
+            // 设置接口名称
+            document.getElementById('moveApiName').textContent = api.name;
+            
+            // 渲染分类列表
+            renderMoveCategoryList(module);
+            
+            // 显示模态框
+            document.getElementById('moveModal').style.display = 'flex';
+        }
+
+        // 隐藏移动接口模态框
+        function hideMoveModal() {
+            document.getElementById('moveModal').style.display = 'none';
+            selectedApiForMove = null;
+            document.getElementById('confirmMoveBtn').disabled = true;
+        }
+
+        // 渲染移动分类列表
+        function renderMoveCategoryList(module) {
+            const categories = module.categories || [];
+            const moveCategoryList = document.getElementById('moveCategoryList');
+            
+            let html = '';
+            
+            // 添加"未分类"选项
+            html += `
+                <div class="move-category-item" onclick="selectMoveCategory(null)">
+                    <div class="category-color" style="background-color: #6c757d"></div>
+                    <div style="margin-left: 10px;">
+                        <div style="font-weight: bold;">未分类</div>
+                        <div style="font-size: 12px; color: #b0b0b0;">移动到未分类</div>
+                    </div>
+                </div>
+            `;
+            
+            // 添加现有分类
+            categories.forEach(category => {
+                html += `
+                    <div class="move-category-item" onclick="selectMoveCategory('${category.id}')">
+                        <div class="category-color" style="background-color: ${category.color}"></div>
+                        <div style="margin-left: 10px;">
+                            <div style="font-weight: bold;">${category.name}</div>
+                            <div style="font-size: 12px; color: #b0b0b0;">${category.description}</div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            moveCategoryList.innerHTML = html;
+        }
+
+        // 选择移动目标分类
+        function selectMoveCategory(categoryId) {
+            // 更新选择状态
+            document.querySelectorAll('.move-category-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            event.currentTarget.classList.add('selected');
+            
+            // 启用确认按钮
+            document.getElementById('confirmMoveBtn').disabled = false;
+            
+            // 保存选择的分类ID
+            selectedApiForMove.targetCategoryId = categoryId;
+        }
+
+        // 确认移动接口
+        function confirmMoveApi() {
+            if (!selectedApiForMove) {
+                alert('没有选择要移动的接口！');
+                return;
+            }
+            
+            const module = moduleData[currentModule];
+            const api = findApiById(selectedApiForMove.apiId);
+            
+            if (!api) {
+                alert('接口不存在！');
+                return;
+            }
+            
+            // 更新接口的分类ID
+            if (selectedApiForMove.targetCategoryId) {
+                api.categoryId = selectedApiForMove.targetCategoryId;
+            } else {
+                delete api.categoryId; // 移动到未分类
+            }
+            
+            hideMoveModal();
+            renderContent();
+            
+            const targetCategoryName = selectedApiForMove.targetCategoryId ? 
+                module.categories.find(cat => cat.id === selectedApiForMove.targetCategoryId)?.name : '未分类';
+            alert(`接口"${api.name}"已移动到"${targetCategoryName}"！`);
+        }
+
+        // 根据ID查找接口
+        function findApiById(apiId) {
+            const module = moduleData[currentModule];
+            const apis = module.apis || [];
+            
+            // 解析apiId
+            const parts = apiId.split('_');
+            if (parts.length < 2) return null;
+            
+            const categoryId = parts[0];
+            const index = parseInt(parts[1]);
+            
+            if (categoryId === 'uncategorized') {
+                // 未分类接口
+                const uncategorizedApis = apis.filter(api => !api.categoryId || !module.categories?.find(cat => cat.id === api.categoryId));
+                return uncategorizedApis[index];
+            } else {
+                // 分类接口
+                const categoryApis = apis.filter(api => api.categoryId === categoryId);
+                return categoryApis[index];
+            }
+        }
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            initSampleScenarios();
+            renderContent();
+        });
+    </script>
+</body>
+</html> 

@@ -1,0 +1,1 @@
+/* empty css             */import{E as a}from"./el-card-d5a120bc.js";import{d as n,e as r,f as s,w as l,o as _,g as t}from"./index-7a753478.js";const p={class:"report-page"},f=n({__name:"Index",setup(c){return(d,e)=>{const o=a;return _(),r("div",p,[s(o,null,{default:l(()=>e[0]||(e[0]=[t("h2",null,"测试报告",-1),t("p",null,"测试报告页面开发中...",-1)])),_:1,__:[0]})])}}});export{f as default};

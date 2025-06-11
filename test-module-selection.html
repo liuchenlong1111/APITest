@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>模块选择测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #1a1a1a;
+            color: #fff;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #333;
+            border-radius: 8px;
+            background: #2a2a2a;
+        }
+        .section h2 {
+            color: #00d4ff;
+            margin-top: 0;
+        }
+        select, button {
+            background: #333;
+            color: #fff;
+            border: 1px solid #555;
+            padding: 8px 12px;
+            border-radius: 4px;
+            margin: 5px;
+            min-width: 200px;
+        }
+        button {
+            background: #00d4ff;
+            color: #000;
+            cursor: pointer;
+            min-width: auto;
+        }
+        .result {
+            background: #333;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 10px 0;
+            white-space: pre-wrap;
+            font-family: monospace;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .success { border-left: 4px solid #67c23a; }
+        .error { border-left: 4px solid #f56c6c; }
+        .info { border-left: 4px solid #409eff; }
+        .selection-row {
+            display: flex;
+            gap: 20px;
+            align-items: end;
+            margin-bottom: 20px;
+        }
+        .selection-item {
+            flex: 1;
+        }
+        .selection-item label {
+            display: block;
+            margin-bottom: 5px;
+            color: #00d4ff;
+            font-weight: bold;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .stat-card {
+            background: #333;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #555;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #00d4ff;
+            margin-bottom: 5px;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #888;
+        }
+        .breadcrumb {
+            background: #444;
+            padding: 10px 15px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-family: monospace;
+        }
+        .breadcrumb-item {
+            color: #00d4ff;
+        }
+        .breadcrumb-arrow {
+            margin: 0 10px;
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 模块选择测试</h1>
+        
+        <div class="section">
+            <h2>三级层级选择</h2>
+            <div class="selection-row">
+                <div class="selection-item">
+                    <label>🏗️ 项目选择</label>
+                    <select id="projectSelect">
+                        <option value="">选择项目...</option>
+                    </select>
+                </div>
+                <div class="selection-item">
+                    <label>🔧 模块选择</label>
+                    <select id="moduleSelect" disabled>
+                        <option value="">请先选择项目</option>
+                    </select>
+                </div>
+                <div class="selection-item">
+                    <label>📂 分类选择</label>
+                    <select id="categorySelect" disabled>
+                        <option value="">请先选择模块</option>
+                    </select>
+                </div>
+                <div class="selection-item">
+                    <button onclick="refreshData()">🔄 刷新数据</button>
+                </div>
+            </div>
+            
+            <div class="breadcrumb" id="breadcrumb">
+                请按顺序选择项目 → 模块 → 分类
+            </div>
+            
+            <div id="selectionResult" class="result"></div>
+        </div>
+
+        <div class="section">
+            <h2>筛选统计</h2>
+            <div class="stats-grid" id="statsGrid">
+                <div class="stat-card">
+                    <div class="stat-value">0</div>
+                    <div class="stat-label">项目总数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">0</div>
+                    <div class="stat-label">当前模块数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">0</div>
+                    <div class="stat-label">当前分类数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">0</div>
+                    <div class="stat-label">当前接口数</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>筛选验证</h2>
+            <div id="validationResult" class="result"></div>
+        </div>
+    </div>
+
+    <script>
+        let projects = [];
+        let modules = [];
+        let categories = [];
+        let apis = [];
+
+        let selectedProject = null;
+        let selectedModule = null;
+        let selectedCategory = null;
+
+        // 初始化
+        async function init() {
+            try {
+                const response = await fetch('/api/v1/projects/');
+                projects = await response.json();
+                
+                const select = document.getElementById('projectSelect');
+                select.innerHTML = '<option value="">选择项目...</option>';
+                projects.forEach(project => {
+                    const option = document.createElement('option');
+                    option.value = project.id;
+                    option.textContent = project.name;
+                    select.appendChild(option);
+                });
+                
+                updateStats();
+                setResult('selectionResult', `加载了 ${projects.length} 个项目`, 'success');
+            } catch (error) {
+                setResult('selectionResult', '加载项目失败: ' + error.message, 'error');
+            }
+        }
+
+        // 项目选择事件
+        document.getElementById('projectSelect').addEventListener('change', async function() {
+            const projectId = this.value;
+            selectedProject = projects.find(p => p.id == projectId);
+            selectedModule = null;
+            selectedCategory = null;
+            
+            const moduleSelect = document.getElementById('moduleSelect');
+            const categorySelect = document.getElementById('categorySelect');
+            
+            if (projectId) {
+                try {
+                    setResult('selectionResult', '正在加载模块...');
+                    
+                    // 加载模块
+                    const modulesResponse = await fetch(`/api/v1/projects/${projectId}/modules`);
+                    modules = await modulesResponse.json();
+                    
+                    // 更新模块选择器
+                    moduleSelect.innerHTML = '<option value="">选择模块...</option>';
+                    moduleSelect.disabled = false;
+                    modules.forEach(module => {
+                        const option = document.createElement('option');
+                        option.value = module.id;
+                        option.textContent = module.name;
+                        moduleSelect.appendChild(option);
+                    });
+                    
+                    // 重置分类选择器
+                    categorySelect.innerHTML = '<option value="">请先选择模块</option>';
+                    categorySelect.disabled = true;
+                    categories = [];
+                    
+                    setResult('selectionResult', `项目 "${selectedProject.name}" 有 ${modules.length} 个模块`, 'success');
+                } catch (error) {
+                    setResult('selectionResult', '加载模块失败: ' + error.message, 'error');
+                }
+            } else {
+                // 重置
+                moduleSelect.innerHTML = '<option value="">请先选择项目</option>';
+                moduleSelect.disabled = true;
+                categorySelect.innerHTML = '<option value="">请先选择模块</option>';
+                categorySelect.disabled = true;
+                modules = [];
+                categories = [];
+            }
+            
+            updateBreadcrumb();
+            updateStats();
+        });
+
+        // 模块选择事件
+        document.getElementById('moduleSelect').addEventListener('change', async function() {
+            const moduleId = this.value;
+            selectedModule = modules.find(m => m.id == moduleId);
+            selectedCategory = null;
+            
+            const categorySelect = document.getElementById('categorySelect');
+            
+            if (moduleId) {
+                try {
+                    setResult('selectionResult', '正在加载分类...');
+                    
+                    // 加载该模块的分类
+                    const categoriesResponse = await fetch(`/api/v1/apis/categories/?module_id=${moduleId}`);
+                    categories = await categoriesResponse.json();
+                    
+                    // 更新分类选择器
+                    categorySelect.innerHTML = '<option value="">选择分类...</option>';
+                    categorySelect.disabled = false;
+                    categories.forEach(category => {
+                        const option = document.createElement('option');
+                        option.value = category.id;
+                        option.textContent = category.name;
+                        categorySelect.appendChild(option);
+                    });
+                    
+                    setResult('selectionResult', `模块 "${selectedModule.name}" 有 ${categories.length} 个分类`, 'success');
+                } catch (error) {
+                    setResult('selectionResult', '加载分类失败: ' + error.message, 'error');
+                }
+            } else {
+                // 重置分类选择器
+                categorySelect.innerHTML = '<option value="">请先选择模块</option>';
+                categorySelect.disabled = true;
+                categories = [];
+            }
+            
+            updateBreadcrumb();
+            updateStats();
+        });
+
+        // 分类选择事件
+        document.getElementById('categorySelect').addEventListener('change', async function() {
+            const categoryId = this.value;
+            selectedCategory = categories.find(c => c.id == categoryId);
+            
+            if (categoryId) {
+                try {
+                    setResult('selectionResult', '正在加载接口...');
+                    
+                    // 加载该分类的接口
+                    const apisResponse = await fetch(`/api/v1/apis/?category_id=${categoryId}`);
+                    apis = await apisResponse.json();
+                    
+                    setResult('selectionResult', `分类 "${selectedCategory.name}" 有 ${apis.length} 个接口`, 'success');
+                } catch (error) {
+                    setResult('selectionResult', '加载接口失败: ' + error.message, 'error');
+                }
+            } else {
+                apis = [];
+            }
+            
+            updateBreadcrumb();
+            updateStats();
+            validateSelection();
+        });
+
+        // 更新面包屑
+        function updateBreadcrumb() {
+            const breadcrumb = document.getElementById('breadcrumb');
+            let text = '';
+            
+            if (selectedProject) {
+                text += `🏗️ ${selectedProject.name}`;
+                
+                if (selectedModule) {
+                    text += ` → 🔧 ${selectedModule.name}`;
+                    
+                    if (selectedCategory) {
+                        text += ` → 📂 ${selectedCategory.name}`;
+                    }
+                }
+            }
+            
+            breadcrumb.textContent = text || '请按顺序选择项目 → 模块 → 分类';
+        }
+
+        // 更新统计信息
+        function updateStats() {
+            const statsGrid = document.getElementById('statsGrid');
+            statsGrid.innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-value">${projects.length}</div>
+                    <div class="stat-label">项目总数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${modules.length}</div>
+                    <div class="stat-label">当前模块数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${categories.length}</div>
+                    <div class="stat-label">当前分类数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${apis.length}</div>
+                    <div class="stat-label">当前接口数</div>
+                </div>
+            `;
+        }
+
+        // 验证选择逻辑
+        function validateSelection() {
+            if (!selectedProject || !selectedModule || !selectedCategory) {
+                return;
+            }
+
+            let validation = `筛选路径验证:\n`;
+            validation += `项目: ${selectedProject.name} (ID: ${selectedProject.id})\n`;
+            validation += `模块: ${selectedModule.name} (ID: ${selectedModule.id})\n`;
+            validation += `分类: ${selectedCategory.name} (ID: ${selectedCategory.id})\n\n`;
+            
+            validation += `验证结果:\n`;
+            validation += `✓ 分类属于选中模块: ${selectedCategory.module_id === selectedModule.id ? '是' : '否'}\n`;
+            validation += `✓ 分类数量符合预期: ${categories.length} 个\n`;
+            validation += `✓ 接口数量: ${apis.length} 个\n`;
+
+            setResult('validationResult', validation, 'success');
+        }
+
+        // 刷新数据
+        async function refreshData() {
+            await init();
+            document.getElementById('projectSelect').value = '';
+            document.getElementById('moduleSelect').innerHTML = '<option value="">请先选择项目</option>';
+            document.getElementById('moduleSelect').disabled = true;
+            document.getElementById('categorySelect').innerHTML = '<option value="">请先选择模块</option>';
+            document.getElementById('categorySelect').disabled = true;
+            
+            selectedProject = null;
+            selectedModule = null;
+            selectedCategory = null;
+            modules = [];
+            categories = [];
+            apis = [];
+            
+            updateBreadcrumb();
+            updateStats();
+            setResult('validationResult', '');
+        }
+
+        // 工具方法
+        function setResult(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.className = `result ${type}`;
+        }
+
+        // 页面加载时初始化
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html> 

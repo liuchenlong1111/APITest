@@ -1,0 +1,99 @@
+// 输入框文字显示修复
+// 确保在深色主题下输入框的文字可见
+
+// 全局输入框样式修复
+input, textarea {
+  color: #ffffff !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
+// Element Plus 输入框组件修复
+.el-input__inner,
+.el-input input,
+input.el-input__inner {
+  color: #ffffff !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+// 文本域修复
+.el-textarea__inner,
+textarea.el-textarea__inner {
+  color: #ffffff !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+// 占位符文字修复
+.el-input__inner::placeholder,
+.el-textarea__inner::placeholder,
+input::placeholder,
+textarea::placeholder {
+  color: rgba(255, 255, 255, 0.6) !important;
+  -webkit-text-fill-color: rgba(255, 255, 255, 0.6) !important;
+}
+
+// 输入框包装器修复
+.el-input__wrapper,
+.el-textarea__wrapper {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+// 聚焦状态修复
+.el-input__wrapper.is-focus,
+.el-input__wrapper:focus-within,
+.el-textarea__wrapper.is-focus {
+  border-color: #00d4ff !important;
+  box-shadow: 0 0 10px rgba(0, 212, 255, 0.3) !important;
+}
+
+// 悬停状态修复
+.el-input__wrapper:hover,
+.el-textarea__wrapper:hover {
+  border-color: #00d4ff !important;
+}
+
+// 对话框内的输入框特殊修复
+.el-dialog .el-input__inner,
+.el-dialog .el-textarea__inner,
+.el-dialog input,
+.el-dialog textarea {
+  color: #ffffff !important;
+  background: rgba(26, 26, 46, 0.8) !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+.el-dialog .el-input__wrapper,
+.el-dialog .el-textarea__wrapper {
+  background: rgba(26, 26, 46, 0.8) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+// 表单控件通用修复
+.el-form-item input,
+.el-form-item textarea {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+// 确保所有状态下的文字都可见
+input[type="text"],
+input[type="password"],
+input[type="email"],
+input[type="number"],
+textarea {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
+// 针对 webkit 浏览器的特殊修复
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-text-fill-color: #ffffff !important;
+  -webkit-box-shadow: 0 0 0 30px rgba(26, 26, 46, 0.8) inset !important;
+  transition: background-color 5000s ease-in-out 0s !important;
+} 
